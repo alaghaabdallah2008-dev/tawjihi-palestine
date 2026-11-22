@@ -1418,11 +1418,11 @@ render();
   })();
 </script>
 
-<script>
 (async function () {
   const db = window.tawjihiSupabase;
+
   if (!db) {
-    console.error("[Tawjihi] Supabase client not found.");
+    console.error("Supabase client not found");
     return;
   }
 
@@ -1433,13 +1433,75 @@ render();
     .order("sort_order", { ascending: true });
 
   if (error) {
-    console.error("[Tawjihi] Content loading failed:", error.message);
+    console.error("Content loading failed:", error.message);
     return;
   }
 
+  // تحويل سجلات قاعدة البيانات إلى شجرة صفحات
+  const items = new Map();
+
+  data.forEach(row => {
+    items.set(row.id, {
+      type: row.node_type,
+      label: row.label || "",
+      url: row.url || "",
+      note: row.note || "",
+      noteType: row.note_type || "",
+      text: row.note || row.label || "",
+      children: []
+    });
+  });
+
+  const roots = [];
+
+  data.forEach(row => {
+    const item = items.get(row.id);
+    const parent = row.parent_id
+      ? items.get(row.parent_id)
+      : null;
+
+    if (parent) {
+      parent.children.push(item);
+    } else {
+      roots.push(item);
+    }
+  });
+
+  // تحديد قسم دخول
+  const entry = roots.find(
+    item => item.type === "page" && item.label === "دخول"
+  );
+
+  if (!entry) {
+    console.error("لم يتم العثور على صفحة دخول في قاعدة البيانات");
+    return;
+  }
+
+  // استبدال القائمة القديمة مع الحفاظ على الصفحات الخاصة
+  const oldChildren = homePage.children || [];
+  const index = oldChildren.findIndex(
+    item => item.label === "دخول"
+  );
+
+  if (index >= 0) {
+    oldChildren[index] = entry;
+  } else {
+    oldChildren.unshift(entry);
+  }
+
+  homePage.children = oldChildren;
+
   window.tawjihiContentNodes = data;
-  console.info("[Tawjihi] Content loaded:", data.length, "records");
+
+  if (stack.length === 1 && stack[0] === homePage) {
+    render();
+  }
+
+  console.info("[Tawjihi] Database connected:", data.length);
 })();
+
+<script>
+
 </script>
 
 </body>
