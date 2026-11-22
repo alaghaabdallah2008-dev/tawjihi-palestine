@@ -1418,5 +1418,29 @@ render();
   })();
 </script>
 
+<script>
+(async function () {
+  const db = window.tawjihiSupabase;
+  if (!db) {
+    console.error("[Tawjihi] Supabase client not found.");
+    return;
+  }
+
+  const { data, error } = await db
+    .from("content_nodes")
+    .select("id, parent_id, node_type, label, url, note, note_type, sort_order, is_active, open_new_tab")
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true });
+
+  if (error) {
+    console.error("[Tawjihi] Content loading failed:", error.message);
+    return;
+  }
+
+  window.tawjihiContentNodes = data;
+  console.info("[Tawjihi] Content loaded:", data.length, "records");
+})();
+</script>
+
 </body>
 </html>
