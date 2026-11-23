@@ -1384,7 +1384,94 @@ if(marqReduced){
   requestAnimationFrame(marqFrame);
 }
 
-render();
+
+async function loadMenuFromSupabase() {
+  try {
+    const { data, error } = await window.tawjihiSupabase
+      .from('content_nodes')
+      .select('*')
+      .eq('is_active', true)
+      .order('sort_order');
+
+    if (error) throw error;
+
+    const rows = data || [];
+    const root = rows.find(
+      r => r.parent_id === null &&
+           r.node_type === 'page' &&
+           r.label === 'دخول'
+    );
+
+    if (!root) throw new Error('لم يتم العثور على قائمة دخول');
+
+    const childrenByParent = new Map();
+
+    rows.forEach(row => {
+      const key = row.parent_id;
+      if (!childrenByParent.has(key)) {
+        childrenByParent.set(key, []);
+      }
+      childrenByParent.get(key).push(row);
+    });
+
+    function buildChildren(parentId) {
+      return (childrenByParent.get(parentId) || []).map(row => {
+        const item = {
+          type: row.node_type,
+          label: row.label
+        };
+
+        if (row.node_type === 'page') {
+          item.children = buildChildren(row.id);
+        }
+
+        if (row.node_type === 'link') {
+          item.url = row.url;
+        }
+
+        if (row.node_type === 'note') {
+          item.type = 'note';
+          item.text = row.note || row.label;
+        }
+
+        if (row.node_type === 'disabled') {
+          item.type = 'disabled';
+        }
+
+        if (row.note) item.note = row.note;
+        if (row.note_type) item.noteType = row.note_type;
+
+        if (row.node_type === 'daily_entry') {
+          item.type = 'daily-entry';
+        }
+
+        if (row.node_type === 'info_entry') {
+          item.type = 'info-entry';
+        }
+
+        return item;
+      });
+    }
+
+    const entry = homePage.children.find(
+      item => item.label === 'دخول'
+    );
+
+    if (!entry) throw new Error('قائمة دخول غير موجودة بالموقع');
+
+    entry.children = buildChildren(root.id);
+
+    console.info('[Tawjihi] تم تحميل القوائم من Supabase');
+    render();
+
+  } catch (error) {
+    console.error('[Tawjihi] خطأ في تحميل القوائم:', error);
+    render();
+  }
+}
+
+
+
 </script>
 
 <!-- Supabase connection: initial safe setup (no UI changes) -->
@@ -1430,6 +1517,7 @@ render();
 
   console.info("[Tawjihi] Supabase connected");
 })();
+  loadMenuFromSupabase();
 </script>
 </body>
 </html>
