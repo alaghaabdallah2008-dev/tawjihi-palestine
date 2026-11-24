@@ -3,12 +3,16 @@ module.exports = async (req, res) => {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const password = req.body?.password;
+const body = typeof req.body === 'string'
+  ? JSON.parse(req.body)
+  : req.body;
 
-  if (!process.env.ADMIN_PASSWORD ||
-      password !== process.env.ADMIN_PASSWORD) {
-    return res.status(401).json({ error: 'كلمة المرور غير صحيحة' });
-  }
+const password = String(body?.password ?? '').trim();
+const savedPassword = String(process.env.ADMIN_PASSWORD ?? '').trim();
+
+if (!savedPassword || password !== savedPassword) {
+  return res.status(401).json({ error: 'كلمة المرور غير صحيحة' });
+}
 
   const supabaseUrl = 'https://pxxdvjpfhhayecpouojz.supabase.co';
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
