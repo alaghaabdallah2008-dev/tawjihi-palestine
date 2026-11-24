@@ -1524,7 +1524,18 @@ function render(){
   crumb.textContent = stack.length > 1 ? stack.slice(1).map(n=>n.label).join('  ›  ') : '';
 
   main.innerHTML = '';
+if(node.type === 'exams-entry'){
+  const title = document.createElement('div');
+  title.className = 'page-title';
+  title.textContent = 'الامتحانات القائمة الآن';
+  main.appendChild(title);
 
+  const box = document.createElement('div');
+  box.className = 'about-text';
+  box.textContent = 'لا توجد امتحانات قائمة حاليًا.';
+  main.appendChild(box);
+  return;
+}
   if(node.type === 'about'){
     const title = document.createElement('div');
     title.className='page-title';
