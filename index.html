@@ -511,24 +511,209 @@
   }
 </style>
 
+
+<style>
+  #authGate {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    direction: rtl;
+    font-family: 'Tajawal', sans-serif;
+    background:
+      radial-gradient(circle at top right, #263c60 0, transparent 40%),
+      linear-gradient(135deg, #091323, #172943, #091323);
+  }
+
+  .auth-card {
+    width: 100%;
+    max-width: 440px;
+    padding: 38px 30px;
+    border: 1px solid rgba(201,162,75,.4);
+    border-radius: 24px;
+    background: #111f34;
+    box-shadow: 0 20px 60px rgba(0,0,0,.35);
+    text-align: center;
+  }
+
+  .auth-logo {
+    width: 72px;
+    height: 72px;
+    margin: 0 auto 18px;
+    display: grid;
+    place-items: center;
+    border: 2px solid #c9a24b;
+    border-radius: 20px;
+    color: #e8c977;
+    font-size: 32px;
+    font-weight: 900;
+  }
+
+  .auth-card h2 {
+    color: #e8c977;
+    font-size: 26px;
+    margin: 0 0 10px;
+  }
+
+  .auth-subtitle {
+    color: #b8c3d2;
+    font-size: 14px;
+    margin-bottom: 25px;
+  }
+
+  .auth-tabs {
+    display: flex;
+    gap: 8px;
+    padding: 5px;
+    margin-bottom: 22px;
+    border-radius: 12px;
+    background: #0b1728;
+  }
+
+  .auth-tabs button {
+    flex: 1;
+    padding: 12px 5px;
+    border: 0;
+    border-radius: 9px;
+    color: #c5cddd;
+    background: transparent;
+    font-family: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .auth-tabs button.active {
+    background: #c9a24b;
+    color: #101a2a;
+  }
+
+  .auth-field {
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 13px;
+    padding: 14px;
+    border: 1px solid #344761;
+    border-radius: 11px;
+    outline: none;
+    background: #0b1728;
+    color: white;
+    font-family: inherit;
+    font-size: 15px;
+  }
+
+  .auth-field:focus {
+    border-color: #c9a24b;
+  }
+
+  .auth-submit {
+    width: 100%;
+    padding: 14px;
+    margin-top: 5px;
+    border: 0;
+    border-radius: 11px;
+    background: #c9a24b;
+    color: #111827;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 900;
+    cursor: pointer;
+  }
+
+  .auth-google {
+    width: 100%;
+    padding: 13px;
+    margin-top: 13px;
+    border: 1px solid #46566d;
+    border-radius: 11px;
+    background: #f5f2ea;
+    color: #172033;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .auth-or {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 20px 0 5px;
+    color: #8997aa;
+    font-size: 13px;
+  }
+
+  .auth-or::before,
+  .auth-or::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: #344761;
+  }
+
+  #authMessage {
+    min-height: 20px;
+    margin-top: 15px;
+    color: #ffb4b4;
+    font-size: 13px;
+  }
+
+  .auth-footer {
+    margin-top: 24px;
+    color: #8492a6;
+    font-size: 12px;
+  }
+
+  @media(max-width:480px) {
+    .auth-card { padding: 30px 20px; }
+  }
+</style>
+
 <div id="authGate">
   <div class="auth-card">
 
-    <div class="auth-mark">ت</div>
-
-    <div class="auth-divider"></div>
+    <div class="auth-logo">ت</div>
 
     <h2>منصة توجيهي فلسطين</h2>
 
     <p class="auth-subtitle">
-      أهلًا بك في منصتك التعليمية
-      <br>
-      سجّل دخولك للمتابعة والوصول إلى المحتوى
+      طريقك نحو التفوق والنجاح يبدأ من هنا
     </p>
 
-    <button id="googleLoginBtn" type="button">
-      <span class="google-letter">G</span>
-      تسجيل الدخول باستخدام Google
+    <div class="auth-tabs">
+      <button type="button" id="loginTab" class="active">تسجيل الدخول</button>
+      <button type="button" id="signupTab">إنشاء حساب</button>
+    </div>
+
+    <form id="emailAuthForm">
+      <input
+        class="auth-field"
+        id="authEmail"
+        type="email"
+        placeholder="البريد الإلكتروني"
+        autocomplete="email"
+        required
+      >
+
+      <input
+        class="auth-field"
+        id="authPassword"
+        type="password"
+        placeholder="كلمة المرور"
+        autocomplete="current-password"
+        required
+      >
+
+      <button class="auth-submit" id="emailSubmit" type="submit">
+        تسجيل الدخول
+      </button>
+    </form>
+
+    <div class="auth-or">أو</div>
+
+    <button id="googleLoginBtn" class="auth-google" type="button">
+      <span style="color:#4285f4;font-size:19px;">G</span>
+      المتابعة باستخدام Google
     </button>
 
     <p id="authMessage"></p>
@@ -539,6 +724,7 @@
 
   </div>
 </div>
+
 <div id="app" style="display:none;">
   <div class="topbar">
     <div class="brand-mini">
