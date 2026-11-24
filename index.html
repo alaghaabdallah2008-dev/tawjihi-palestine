@@ -1637,19 +1637,11 @@ if(node.type === 'admin-data-entry'){
         const created = document.createElement('div');
         created.textContent = 'تاريخ التسجيل: ' +
           (user.created_at ? new Date(user.created_at).toLocaleDateString('ar') : 'غير متوفر');
-
-      lastLogin.textContent = 'آخر تسجيل دخول: ' +
+const lastLogin = document.createElement('div');
+   lastLogin.textContent = 'آخر تسجيل دخول: ' +
   (user.last_sign_in_at
-    ? new Date(user.last_sign_in_at).toLocaleString('ar-PS', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      })
+    ? new Date(user.last_sign_in_at).toLocaleString('ar')
     : 'لم يسجل دخولاً');
-
        const header = document.createElement('div');
 header.style.cssText = `
   display:flex;
