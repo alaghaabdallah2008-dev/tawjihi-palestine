@@ -392,12 +392,151 @@
 </style>
 </head>
 <body>
-  <div id="authGate" style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:#f4f7fb;direction:rtl;">
-  <div style="width:100%;max-width:420px;background:white;padding:32px 24px;border-radius:20px;text-align:center;box-shadow:0 10px 35px rgba(0,0,0,.08);">
+ <style>
+  #authGate {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    direction: rtl;
+    font-family: 'Tajawal', sans-serif;
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(201,162,75,.18), transparent 55%),
+      linear-gradient(145deg, #0b1220, #16233d 55%, #0b1220);
+  }
+
+  .auth-card {
+    width: 100%;
+    max-width: 440px;
+    padding: 42px 30px;
+    text-align: center;
+    border: 1px solid rgba(201,162,75,.38);
+    border-radius: 24px;
+    background: rgba(16,26,46,.88);
+    box-shadow: 0 20px 65px rgba(0,0,0,.35);
+  }
+
+  .auth-mark {
+    width: 76px;
+    height: 76px;
+    margin: 0 auto 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #c9a24b;
+    border-radius: 22px;
+    color: #e8c977;
+    font-size: 30px;
+    font-weight: 900;
+    background: rgba(201,162,75,.10);
+  }
+
+  .auth-card h2 {
+    color: #e8c977;
+    font-size: 27px;
+    margin-bottom: 12px;
+  }
+
+  .auth-card .auth-subtitle {
+    color: #c4c4b8;
+    font-size: 15px;
+    line-height: 1.9;
+    margin-bottom: 28px;
+  }
+
+  .auth-divider {
+    width: 65px;
+    height: 3px;
+    margin: 0 auto 24px;
+    border-radius: 10px;
+    background: linear-gradient(90deg, #0e6b3a, #f5f2ea, #b0142f);
+  }
+
+  #googleLoginBtn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 15px;
+    border: 0;
+    border-radius: 13px;
+    background: #f5f2ea;
+    color: #172033;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: .2s;
+  }
+
+  #googleLoginBtn:hover {
+    background: #e8c977;
+    transform: translateY(-2px);
+  }
+
+  #googleLoginBtn:disabled {
+    opacity: .7;
+    cursor: wait;
+    transform: none;
+  }
+
+  .google-letter {
+    font-size: 21px;
+    font-weight: 900;
+    color: #4285f4;
+  }
+
+  #authMessage {
+    color: #ffb4b4;
+    font-size: 14px;
+    margin-top: 18px;
+    line-height: 1.7;
+  }
+
+  .auth-footer {
+    color: #a7a695;
+    font-size: 12px;
+    margin-top: 27px;
+  }
+
+  @media(max-width:480px) {
+    .auth-card {
+      padding: 34px 22px;
+    }
+    .auth-card h2 {
+      font-size: 23px;
+    }
+  }
+</style>
+
+<div id="authGate">
+  <div class="auth-card">
+
+    <div class="auth-mark">ت</div>
+
+    <div class="auth-divider"></div>
+
     <h2>منصة توجيهي فلسطين</h2>
-    <p>سجّل الدخول للمتابعة واستخدام محتوى المنصة</p>
-    <button id="googleLoginBtn" type="button" style="width:100%;padding:14px;border:0;border-radius:12px;background:#2563eb;color:white;font-size:16px;font-weight:bold;cursor:pointer;">تسجيل الدخول باستخدام Google</button>
-    <p id="authMessage" style="color:#b91c1c;font-size:14px;"></p>
+
+    <p class="auth-subtitle">
+      أهلًا بك في منصتك التعليمية
+      <br>
+      سجّل دخولك للمتابعة والوصول إلى المحتوى
+    </p>
+
+    <button id="googleLoginBtn" type="button">
+      <span class="google-letter">G</span>
+      تسجيل الدخول باستخدام Google
+    </button>
+
+    <p id="authMessage"></p>
+
+    <div class="auth-footer">
+      منصة توجيهي فلسطين © جميع الحقوق محفوظة
+    </div>
+
   </div>
 </div>
 <div id="app" style="display:none;">
