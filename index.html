@@ -1620,68 +1620,95 @@ if(node.type === 'admin-data-entry'){
 
       message.textContent = 'عدد الطلاب المسجلين: ' + data.count;
 
-      data.users.forEach((user, index) => {
-        const card = document.createElement('div');
-        card.style.cssText = `
-          background:white;
-          padding:15px;
-          margin:10px 0;
-          border-radius:10px;
-          border:1px solid #ddd;
-          color:#172943;
-        `;
+      const table = document.createElement('table');
 
-        const email = document.createElement('div');
-        email.textContent = 'البريد: ' + (user.email || 'غير متوفر');
-
-        const created = document.createElement('div');
-        created.textContent = 'تاريخ التسجيل: ' +
-          (user.created_at ? new Date(user.created_at).toLocaleDateString('ar') : 'غير متوفر');
-const lastLogin = document.createElement('div');
-   lastLogin.textContent = 'آخر تسجيل دخول: ' +
-  (user.last_sign_in_at
-    ? new Date(user.last_sign_in_at).toLocaleString('ar')
-    : 'لم يسجل دخولاً');
-       const header = document.createElement('div');
-header.style.cssText = `
-  display:flex;
-  align-items:center;
-  gap:14px;
-  margin-bottom:14px;
-`;
-
-const avatar = document.createElement('img');
-avatar.src = user.avatar || 'https://ui-avatars.com/api/?name=Student&background=172943&color=e8c977';
-avatar.alt = 'صورة الطالب';
-        avatar.onerror = function () {
-  this.src = 'https://ui-avatars.com/api/?name=Student&background=172943&color=e8c977';
-};
-avatar.style.cssText = `
-  width:58px;
-  height:58px;
-  border-radius:50%;
-  object-fit:cover;
-  border:2px solid #c9a24b;
-`;
-
-const name = document.createElement('div');
-name.textContent = user.name || 'طالب';
-name.style.cssText = `
-  font-size:17px;
-  font-weight:bold;
+table.style.cssText = `
+  width:100%;
+  border-collapse:collapse;
+  min-width:750px;
   color:#172943;
+  text-align:center;
+  background:white;
 `;
 
-header.append(avatar, name);
-
-card.style.cssText += `
-  text-align:right;
-  box-shadow:0 4px 15px rgba(23,41,67,.08);
+const thead = document.createElement('thead');
+thead.innerHTML = `
+  <tr style="background:#172943;color:#e8c977;">
+    <th style="padding:14px;">الطالب</th>
+    <th style="padding:14px;">البريد الإلكتروني</th>
+    <th style="padding:14px;">تاريخ التسجيل</th>
+    <th style="padding:14px;">آخر تسجيل دخول</th>
+  </tr>
 `;
 
-card.append(header, email, created, lastLogin);
-results.appendChild(card);
-      });
+const tbody = document.createElement('tbody');
+
+data.users.forEach((user) => {
+  const tr = document.createElement('tr');
+  tr.style.borderBottom = '1px solid #e5e7eb';
+
+  const student = document.createElement('td');
+  student.style.padding = '12px';
+
+  const studentBox = document.createElement('div');
+  studentBox.style.cssText = `
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+  `;
+
+  const avatar = document.createElement('img');
+  avatar.src = user.avatar || 'https://ui-avatars.com/api/?name=Student&background=172943&color=e8c977';
+  avatar.alt = 'صورة الطالب';
+  avatar.style.cssText = `
+    width:42px;
+    height:42px;
+    border-radius:50%;
+    object-fit:cover;
+    border:2px solid #c9a24b;
+  `;
+
+  const name = document.createElement('strong');
+  name.textContent = user.name || 'طالب';
+
+  studentBox.append(avatar, name);
+  student.appendChild(studentBox);
+
+  const email = document.createElement('td');
+  email.textContent = user.email || 'غير متوفر';
+  email.style.padding = '12px';
+
+  const created = document.createElement('td');
+  created.textContent = user.created_at
+    ? new Date(user.created_at).toLocaleString('ar')
+    : 'غير متوفر';
+  created.style.padding = '12px';
+
+  const lastLogin = document.createElement('td');
+  lastLogin.textContent = user.last_sign_in_at
+    ? new Date(user.last_sign_in_at).toLocaleString('ar')
+    : 'لم يسجل دخولاً';
+  lastLogin.style.padding = '12px';
+
+  tr.append(student, email, created, lastLogin);
+  tbody.appendChild(tr);
+});
+
+table.append(thead, tbody);
+
+const tableWrapper = document.createElement('div');
+tableWrapper.style.cssText = `
+  width:100%;
+  overflow-x:auto;
+  border-radius:14px;
+  border:1px solid #e5e7eb;
+  box-shadow:0 5px 20px rgba(23,41,67,.08);
+  background:white;
+`;
+
+tableWrapper.appendChild(table);
+results.appendChild(tableWrapper);
 
     } catch(error) {
       message.textContent = 'حدث خطأ في الاتصال بالخادم.';
