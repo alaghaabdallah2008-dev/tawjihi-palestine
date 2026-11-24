@@ -2102,14 +2102,7 @@ supabase.auth.onAuthStateChange(function (_event, session) {
     logoutBtn.style.display = 'none';
   }
 });
-      .then(({ error }) => {
-        if (error) console.error('Last seen error:', error);
-      });
 
-  } else {
-    logoutBtn.style.display = 'none';
-  }
-});
   } else {
     logoutBtn.style.display = 'none';
   }
