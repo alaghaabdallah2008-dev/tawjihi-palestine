@@ -1538,7 +1538,7 @@ if(node.type === 'exams-entry'){
   main.appendChild(box);
   return;
 }
-  if(node.type === 'admin-data-entry'){
+if(node.type === 'admin-data-entry'){
   const title = document.createElement('div');
   title.className = 'page-title';
   title.textContent = 'بيانات المشرفين';
@@ -1546,8 +1546,117 @@ if(node.type === 'exams-entry'){
 
   const box = document.createElement('div');
   box.className = 'about-text';
-  box.textContent = 'سيتم تجهيز لوحة بيانات الطلاب هنا.';
+  box.style.maxWidth = '650px';
+  box.style.margin = '20px auto';
+
+  const password = document.createElement('input');
+  password.type = 'password';
+  password.placeholder = 'أدخل كلمة مرور المشرف';
+  password.autocomplete = 'current-password';
+  password.style.cssText = `
+    width:100%;
+    padding:14px;
+    border:1px solid #ccc;
+    border-radius:10px;
+    margin-bottom:12px;
+    font-family:inherit;
+    box-sizing:border-box;
+  `;
+
+  const button = document.createElement('button');
+  button.textContent = 'دخول المشرفين';
+  button.style.cssText = `
+    width:100%;
+    padding:13px;
+    border:0;
+    border-radius:10px;
+    background:#172943;
+    color:#e8c977;
+    font-weight:bold;
+    cursor:pointer;
+    font-family:inherit;
+  `;
+
+  const message = document.createElement('div');
+  message.style.marginTop = '15px';
+
+  const results = document.createElement('div');
+  results.style.marginTop = '20px';
+
+  box.appendChild(password);
+  box.appendChild(button);
+  box.appendChild(message);
+  box.appendChild(results);
   main.appendChild(box);
+
+  button.onclick = async () => {
+    if(!password.value.trim()){
+      message.textContent = 'أدخل كلمة المرور أولاً.';
+      return;
+    }
+
+    button.disabled = true;
+    button.textContent = 'جارٍ تحميل البيانات...';
+    message.textContent = '';
+    results.innerHTML = '';
+
+    try {
+      const response = await fetch('/api/admin-users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          password: password.value
+        })
+      });
+
+      const data = await response.json();
+
+      if(!response.ok){
+        message.textContent = data.error || 'تعذر الدخول.';
+        return;
+      }
+
+      message.textContent = 'عدد الطلاب المسجلين: ' + data.count;
+
+      data.users.forEach((user, index) => {
+        const card = document.createElement('div');
+        card.style.cssText = `
+          background:white;
+          padding:15px;
+          margin:10px 0;
+          border-radius:10px;
+          border:1px solid #ddd;
+          color:#172943;
+        `;
+
+        const email = document.createElement('div');
+        email.textContent = 'البريد: ' + (user.email || 'غير متوفر');
+
+        const created = document.createElement('div');
+        created.textContent = 'تاريخ التسجيل: ' +
+          (user.created_at ? new Date(user.created_at).toLocaleDateString('ar') : 'غير متوفر');
+
+        const lastLogin = document.createElement('div');
+        lastLogin.textContent = 'آخر دخول: ' +
+          (user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString('ar') : 'لم يسجل دخولاً');
+
+        const number = document.createElement('div');
+        number.textContent = 'الطالب رقم ' + (index + 1);
+
+        card.append(number, email, created, lastLogin);
+        results.appendChild(card);
+      });
+
+    } catch(error) {
+      message.textContent = 'حدث خطأ في الاتصال بالخادم.';
+    } finally {
+      button.disabled = false;
+      button.textContent = 'دخول المشرفين';
+    }
+  };
+
   return;
 }
   if(node.type === 'about'){
