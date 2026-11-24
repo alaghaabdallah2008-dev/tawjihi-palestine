@@ -1653,6 +1653,9 @@ header.style.cssText = `
 const avatar = document.createElement('img');
 avatar.src = user.avatar || 'https://ui-avatars.com/api/?name=Student&background=172943&color=e8c977';
 avatar.alt = 'صورة الطالب';
+        avatar.onerror = function () {
+  this.src = 'https://ui-avatars.com/api/?name=Student&background=172943&color=e8c977';
+};
 avatar.style.cssText = `
   width:58px;
   height:58px;
