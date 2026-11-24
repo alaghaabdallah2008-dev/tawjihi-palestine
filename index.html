@@ -1849,7 +1849,38 @@ async function loadMenuFromSupabase() {
  if (message) message.textContent = 'تعذر تحميل تسجيل الدخول. حدّث الصفحة وحاول مجددًا.';
     return;
   }
+const logoutBtn = document.createElement('button');
+logoutBtn.textContent = 'تسجيل الخروج';
+logoutBtn.style.cssText = `
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  z-index: 9999;
+  padding: 11px 18px;
+  border: 1px solid #c9a24b;
+  border-radius: 10px;
+  background: #172943;
+  color: #e8c977;
+  font-family: inherit;
+  font-weight: bold;
+  cursor: pointer;
+`;
 
+app.appendChild(logoutBtn);
+logoutBtn.style.display = 'none';
+
+logoutBtn.addEventListener('click', async function () {
+  logoutBtn.disabled = true;
+  logoutBtn.textContent = 'جارٍ تسجيل الخروج...';
+
+  const { error } = await supabase.auth.signOut();
+
+  if (error) {
+    alert('تعذر تسجيل الخروج: ' + error.message);
+    logoutBtn.disabled = false;
+    logoutBtn.textContent = 'تسجيل الخروج';
+  }
+});
   async function updateAuthUI() {
     const { data, error } = await supabase.auth.getSession();
 
@@ -1883,10 +1914,11 @@ async function loadMenuFromSupabase() {
   });
 
   supabase.auth.onAuthStateChange(function (_event, session) {
-    const loggedIn = !!session;
-    gate.style.display = loggedIn ? 'none' : 'flex';
-    app.style.display = loggedIn ? '' : 'none';
-  });
+   const loggedIn = !!session;
+gate.style.display = loggedIn ? 'none' : 'flex';
+app.style.display = loggedIn ? '' : 'none';
+logoutBtn.style.display = loggedIn ? 'block' : 'none';
+});
 
   updateAuthUI();
 })();
