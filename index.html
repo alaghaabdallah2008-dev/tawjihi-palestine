@@ -1504,19 +1504,9 @@ async function loadMenuFromSupabase() {
       });
   })();
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script>
-(function () {
-  const SUPABASE_URL = "https://pxxdvjpfhhayecpouojz.supabase.co";
-  const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Y-WX1Im6Fg8RT9VZvaadZw_qMcRNmZW";
 
-  window.tawjihiSupabase = window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_PUBLISHABLE_KEY
-  );
-
-  console.info("[Tawjihi] Supabase connected");
-})();
   loadMenuFromSupabase();
 </script>
 </body>
