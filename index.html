@@ -2024,6 +2024,17 @@ async function loadMenuFromSupabase() {
  if (message) message.textContent = 'تعذر تحميل تسجيل الدخول. حدّث الصفحة وحاول مجددًا.';
     return;
   }
+    // تحديث آخر ظهور للطالب
+  supabase.auth.getSession().then(({ data, error }) => {
+    if (error || !data?.session) return;
+
+    supabase
+      .from('student_activity')
+      .upsert({
+        user_id: data.session.user.id,
+        last_seen: new Date().toISOString()
+      });
+  });
 const logoutBtn = document.createElement('button');
 logoutBtn.textContent = 'تسجيل الخروج';
 logoutBtn.style.cssText = `
