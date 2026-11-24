@@ -1642,11 +1642,42 @@ if(node.type === 'admin-data-entry'){
         lastLogin.textContent = 'آخر دخول: ' +
           (user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString('ar') : 'لم يسجل دخولاً');
 
-        const number = document.createElement('div');
-        number.textContent = 'الطالب رقم ' + (index + 1);
+       const header = document.createElement('div');
+header.style.cssText = `
+  display:flex;
+  align-items:center;
+  gap:14px;
+  margin-bottom:14px;
+`;
 
-        card.append(number, email, created, lastLogin);
-        results.appendChild(card);
+const avatar = document.createElement('img');
+avatar.src = user.avatar || 'https://ui-avatars.com/api/?name=Student&background=172943&color=e8c977';
+avatar.alt = 'صورة الطالب';
+avatar.style.cssText = `
+  width:58px;
+  height:58px;
+  border-radius:50%;
+  object-fit:cover;
+  border:2px solid #c9a24b;
+`;
+
+const name = document.createElement('div');
+name.textContent = user.name || 'طالب';
+name.style.cssText = `
+  font-size:17px;
+  font-weight:bold;
+  color:#172943;
+`;
+
+header.append(avatar, name);
+
+card.style.cssText += `
+  text-align:right;
+  box-shadow:0 4px 15px rgba(23,41,67,.08);
+`;
+
+card.append(header, email, created, lastLogin);
+results.appendChild(card);
       });
 
     } catch(error) {
