@@ -2089,7 +2089,7 @@ logoutBtn.addEventListener('click', async function () {
     }
   });
 
-supabase.auth.onAuthStateChange(async function (_event, session) {
+supabase.auth.onAuthStateChange(function (_event, session) {
   const loggedIn = !!session;
 
   gate.style.display = loggedIn ? 'none' : 'flex';
@@ -2099,12 +2099,20 @@ supabase.auth.onAuthStateChange(async function (_event, session) {
     logoutBtn.style.display = 'block';
     logoutBtn.style.margin = '25px auto';
 
-    await supabase
+    supabase
       .from('student_activity')
       .upsert({
         user_id: session.user.id,
         last_seen: new Date().toISOString()
+      })
+      .then(({ error }) => {
+        if (error) console.error('Last seen error:', error);
       });
+
+  } else {
+    logoutBtn.style.display = 'none';
+  }
+});
   } else {
     logoutBtn.style.display = 'none';
   }
