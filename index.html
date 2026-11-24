@@ -1625,7 +1625,8 @@ if(node.type === 'admin-data-entry'){
 table.style.cssText = `
   width:100%;
   border-collapse:collapse;
-  min-width:750px;
+min-width:0;
+table-layout:fixed;
   color:#172943;
   text-align:center;
   background:white;
@@ -1700,7 +1701,7 @@ table.append(thead, tbody);
 const tableWrapper = document.createElement('div');
 tableWrapper.style.cssText = `
   width:100%;
-  overflow-x:auto;
+  overflow-x:hidden;
   border-radius:14px;
   border:1px solid #e5e7eb;
   box-shadow:0 5px 20px rgba(23,41,67,.08);
