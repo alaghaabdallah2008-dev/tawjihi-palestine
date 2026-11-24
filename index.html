@@ -2098,13 +2098,10 @@ supabase.auth.onAuthStateChange(function (_event, session) {
   if (loggedIn) {
     logoutBtn.style.display = 'block';
     logoutBtn.style.margin = '25px auto';
-
-    supabase
-      .from('student_activity')
-      .upsert({
-        user_id: session.user.id,
-        last_seen: new Date().toISOString()
-      })
+  } else {
+    logoutBtn.style.display = 'none';
+  }
+});
       .then(({ error }) => {
         if (error) console.error('Last seen error:', error);
       });
