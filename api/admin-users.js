@@ -38,7 +38,7 @@ if (!savedPassword || password !== savedPassword) {
 
     const data = await response.json();
 
-  const users = (data.users || []).map(user => ({
+ const users = (data.users || []).map(user => ({
   id: user.id,
   name: user.user_metadata?.full_name || user.user_metadata?.name || 'طالب',
   avatar: user.user_metadata?.avatar_url || user.user_metadata?.picture || '',
