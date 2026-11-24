@@ -1538,6 +1538,18 @@ if(node.type === 'exams-entry'){
   main.appendChild(box);
   return;
 }
+  if(node.type === 'admin-data-entry'){
+  const title = document.createElement('div');
+  title.className = 'page-title';
+  title.textContent = 'بيانات المشرفين';
+  main.appendChild(title);
+
+  const box = document.createElement('div');
+  box.className = 'about-text';
+  box.textContent = 'سيتم تجهيز لوحة بيانات الطلاب هنا.';
+  main.appendChild(box);
+  return;
+}
   if(node.type === 'about'){
     const title = document.createElement('div');
     title.className='page-title';
