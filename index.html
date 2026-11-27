@@ -997,8 +997,7 @@ const exams20062007_d2 = pageItem('اختبارات 2006-2007 الدورة ال�
   ]),
   pageItem('الفرع الأدبي', [
     linkItem('اللغة العربية', 'https://www.facebook.com/share/p/1BuZ5ckreF/'),
-    linkItem('اللغة الانجليزية', 'https://www.facebook.com/share/p/1HcXCeBAzq/'),
-    linkItem('التربية الاسلامية', 'https://www.facebook.com/share/p/1F9W2GeSwc/'),
+    linkItem('اللغة الانجليزية', 'https://www.facebook.com/share/p/1HcXCeBAzq/'),    linkItem('التربية الاسلامية', 'https://www.facebook.com/share/p/1F9W2GeSwc/'),
     linkItem('الرياضيات', 'https://www.facebook.com/share/p/1FsNS6tUVj/'),
     linkItem('تاريخ', 'https://www.facebook.com/share/p/1C8oLsPZxY/'),
     linkItem('جغرافيا', 'https://www.facebook.com/share/p/1CFXRbWWKQ/'),
@@ -1505,7 +1504,240 @@ const homePage = pageItem('الرئيسية', [
   { type:'info-entry', label:'معلومات حول المنصة' },
   { type:'exams-entry', label:'الامتحانات القائمة الآن' },
   { type:'admin-data-entry', label:'تحكم المشرفين' },
+  { type:'student-inquiries', label:'الأسئلة والاستفسارات' },
 ]);
+
+
+/* ================= STUDENT / ADMIN INQUIRIES ================= */
+function inquiryEl(tag, text, className) {
+  const el = document.createElement(tag);
+  if (text !== undefined && text !== null) el.textContent = text;
+  if (className) el.className = className;
+  return el;
+}
+function inquiryButton(text, onClick) {
+  const b = inquiryEl('button', text);
+  b.type = 'button';
+  b.style.cssText = 'font-family:inherit;padding:11px 16px;border:0;border-radius:10px;background:#c9a24b;color:#101a2e;font-weight:800;cursor:pointer;';
+  b.addEventListener('click', onClick);
+  return b;
+}
+function inquiryField(el) {
+  el.style.cssText = 'width:100%;padding:12px;border:1px solid rgba(201,162,75,.4);border-radius:10px;background:#0b1728;color:#fff;font-family:inherit;box-sizing:border-box;margin:7px 0;';
+  return el;
+}
+async function inquiryApi(path, options={}) {
+  const response = await fetch(path, options);
+  let data = {};
+  try { data = await response.json(); } catch (_) {}
+  if (!response.ok) throw new Error(data.error || 'تعذر تنفيذ الطلب');
+  return data;
+}
+function inquirySessionHeaders(extra={}) {
+  const session = window.tawjihiSupabase?.auth;
+  if (!session?.getSession) return Promise.reject(new Error('تعذر تهيئة تسجيل الدخول. حدّث الصفحة وحاول مجددًا.'));
+  return session.getSession().then(({data, error}) => {
+    if (error || !data?.session?.access_token) throw new Error('سجّل الدخول باستخدام Google أولاً.');
+    return { ...extra, Authorization: 'Bearer ' + data.session.access_token };
+  });
+}
+function inquiryCard() {
+  const box = inquiryEl('div');
+  box.className = 'about-text';
+  box.style.cssText += 'max-width:760px;margin:12px auto;padding:18px;';
+  return box;
+}
+function inquiryStatus(target, message, bad=false) {
+  target.textContent = message || '';
+  target.style.color = bad ? '#ffb4b4' : '#e8c977';
+  target.style.margin = '10px 0';
+}
+function inquiryFileInfo(file) {
+  if (!file) return null;
+  const allowed = ['image/jpeg','image/png','image/webp','application/pdf',
+    'application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-powerpoint','application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'application/vnd.ms-excel','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'text/plain'];
+  if (!allowed.includes(file.type)) throw new Error('نوع الملف غير مسموح. استخدم صورة أو PDF أو Word أو PowerPoint أو Excel أو TXT.');
+  if (file.size > 5 * 1024 * 1024) throw new Error('الحد الأقصى لحجم الملف 5 ميغابايت.');
+  return file;
+}
+async function inquiryUpload(file, conversationId, headers) {
+  inquiryFileInfo(file);
+  const signed = await inquiryApi('/api/student-inquiries?action=upload-url', {
+    method:'POST', headers:{...headers,'Content-Type':'application/json'},
+    body:JSON.stringify({conversationId, fileName:file.name, contentType:file.type, size:file.size})
+  });
+  const uploadUrl = signed.url;
+  const uploaded = await fetch(uploadUrl, {
+    method:'PUT', headers:{'Content-Type':file.type, 'x-upsert':'false'}, body:file
+  });
+  if (!uploaded.ok) throw new Error('تعذر رفع الملف المرفق.');
+  return { path:signed.path, name:file.name, mime:file.type, size:file.size };
+}
+async function inquiryAttachmentLink(path, headers, adminPassword) {
+  const endpoint = adminPassword ? '/api/admin-inquiries' : '/api/student-inquiries?action=download-url';
+  const body = adminPassword ? {action:'download-url', password:adminPassword, path} : {path};
+  const h = adminPassword ? {'Content-Type':'application/json'} : {...headers,'Content-Type':'application/json'};
+  const result = await inquiryApi(endpoint, {method:'POST',headers:h,body:JSON.stringify(body)});
+  return result.url;
+}
+function renderStudentInquiries(main) {
+  const title = inquiryEl('div','الأسئلة والاستفسارات','page-title'); main.appendChild(title);
+  const card = inquiryCard(); main.appendChild(card);
+  const status = inquiryEl('div'); card.appendChild(status);
+  const subject = inquiryField(inquiryEl('input')); subject.placeholder='عنوان الاستفسار'; subject.maxLength=120;
+  const body = inquiryField(inquiryEl('textarea')); body.placeholder='اكتب سؤالك أو استفسارك بالتفصيل...'; body.rows=4;
+  const file = inquiryField(inquiryEl('input')); file.type='file';
+  const create = inquiryButton('إرسال استفسار جديد', async()=>{
+    try {
+      create.disabled=true; inquiryStatus(status,'جارٍ إرسال الاستفسار...');
+      const headers=await inquirySessionHeaders({'Content-Type':'application/json'});
+      const data=await inquiryApi('/api/student-inquiries?action=create',{method:'POST',headers,body:JSON.stringify({subject:subject.value,message:body.value})});
+      let attachment=null;
+      if(file.files[0]) attachment=await inquiryUpload(file.files[0],data.conversation.id,headers);
+      if(attachment) await inquiryApi('/api/student-inquiries?action=send',{method:'POST',headers,body:JSON.stringify({conversationId:data.conversation.id,message:'',attachment})});
+      subject.value=''; body.value=''; file.value='';
+      inquiryStatus(status,'تم إرسال استفسارك بنجاح.');
+      await loadList();
+    } catch(e){ inquiryStatus(status,e.message,true); }
+    finally { create.disabled=false; }
+  });
+  card.append(subject,body,file,create);
+  const listWrap=inquiryCard(); main.appendChild(listWrap);
+  listWrap.appendChild(inquiryEl('h3','استفساراتي'));
+  const list=inquiryEl('div'); listWrap.appendChild(list);
+  async function loadList(){
+    list.replaceChildren(inquiryEl('p','جارٍ تحميل الاستفسارات...'));
+    try{
+      const headers=await inquirySessionHeaders();
+      const data=await inquiryApi('/api/student-inquiries?action=list',{headers});
+      list.replaceChildren();
+      if(!data.conversations.length){list.appendChild(inquiryEl('p','لا توجد استفسارات حتى الآن.'));return;}
+      data.conversations.forEach(c=>{
+        const row=inquiryEl('button');
+        row.type='button'; row.style.cssText='display:block;width:100%;text-align:right;margin:8px 0;padding:14px;border:1px solid rgba(201,162,75,.3);border-radius:12px;background:#111f34;color:#f5f2ea;font-family:inherit;cursor:pointer;';
+        row.append(inquiryEl('strong',c.subject),inquiryEl('div',`الحالة: ${c.status==='closed'?'مغلقة':'قيد المتابعة'} · ${new Date(c.updated_at).toLocaleString('ar')}`));
+        row.onclick=()=>openChat(c,headers);
+        list.appendChild(row);
+      });
+    }catch(e){list.replaceChildren(inquiryEl('p',e.message));}
+  }
+  async function openChat(conversation, headers){
+    stack.push({type:'student-inquiry-chat',label:conversation.subject,conversationId:conversation.id});
+    render();
+  }
+  loadList();
+}
+async function renderStudentInquiryChat(main, conversationId) {
+  const title=inquiryEl('div','المحادثة','page-title');main.appendChild(title);
+  const card=inquiryCard();main.appendChild(card);
+  const status=inquiryEl('div');card.appendChild(status);
+  const messages=inquiryEl('div');messages.style.cssText='display:flex;flex-direction:column;gap:10px;margin-bottom:18px;';card.appendChild(messages);
+  const input=inquiryField(inquiryEl('textarea'));input.rows=3;input.placeholder='اكتب ردك...';
+  const file=inquiryField(inquiryEl('input'));file.type='file';
+  const send=inquiryButton('إرسال',sendMessage);
+  card.append(input,file,send);
+  let headers, channel;
+  async function refresh(){
+    const data=await inquiryApi('/api/student-inquiries?action=messages&conversationId='+encodeURIComponent(conversationId),{headers});
+    messages.replaceChildren();
+    data.messages.forEach(m=>{
+      const b=inquiryEl('div');b.style.cssText='padding:12px;border-radius:12px;background:'+(m.sender_role==='admin'?'rgba(201,162,75,.16)':'#172943')+';border:1px solid rgba(201,162,75,.2);';
+      b.append(inquiryEl('strong',m.sender_role==='admin'?'المشرف':'أنت'),inquiryEl('p',m.body||'مرفق'));
+      if(m.attachment_path){
+        const a=inquiryEl('button','فتح المرفق');a.type='button';a.style.cssText='margin-top:8px;padding:7px 12px;border-radius:8px;border:1px solid #c9a24b;background:transparent;color:#e8c977;font-family:inherit;cursor:pointer;';
+        a.onclick=async()=>{try{const url=await inquiryAttachmentLink(m.attachment_path,headers);window.open(url,'_blank','noopener');}catch(e){inquiryStatus(status,e.message,true);}};
+        b.appendChild(a);
+      }
+      b.append(inquiryEl('small',new Date(m.created_at).toLocaleString('ar')));messages.appendChild(b);
+    });
+    messages.scrollTop=messages.scrollHeight;
+  }
+  async function sendMessage(){
+    try{
+      send.disabled=true;headers=await inquirySessionHeaders({'Content-Type':'application/json'});
+      let attachment=null;
+      if(file.files[0]) attachment=await inquiryUpload(file.files[0],conversationId,headers);
+      if(!input.value.trim()&&!attachment) throw new Error('اكتب رسالة أو أرفق ملفاً.');
+      await inquiryApi('/api/student-inquiries?action=send',{method:'POST',headers,body:JSON.stringify({conversationId,message:input.value,attachment})});
+      input.value='';file.value='';inquiryStatus(status,'تم إرسال الرسالة.');await refresh();
+    }catch(e){inquiryStatus(status,e.message,true);}finally{send.disabled=false;}
+  }
+  try{
+    headers=await inquirySessionHeaders();await refresh();
+    const client=window.tawjihiSupabase;
+    if(client){
+      channel=client.channel('student-inquiry-'+conversationId)
+        .on('postgres_changes',{event:'INSERT',schema:'public',table:'inquiry_messages',filter:'conversation_id=eq.'+conversationId},()=>refresh().catch(()=>{}))
+        .subscribe();
+      window.addEventListener('beforeunload',()=>{if(channel)client.removeChannel(channel);},{once:true});
+    }
+  }catch(e){inquiryStatus(status,e.message,true);}
+}
+async function inquiryAdminUpload(file, conversationId, password) {
+  inquiryFileInfo(file);
+  const signed=await inquiryApi('/api/admin-inquiries',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'upload-url',password,conversationId,fileName:file.name,contentType:file.type,size:file.size})});
+  const uploaded=await fetch(signed.url,{method:'PUT',headers:{'Content-Type':file.type,'x-upsert':'false'},body:file});
+  if(!uploaded.ok) throw new Error('تعذر رفع الملف المرفق.');
+  return {path:signed.path,name:file.name,mime:file.type,size:file.size};
+}
+async function renderAdminInquiries(main, password) {
+  const title=inquiryEl('div','استفسارات الطلاب','page-title');main.appendChild(title);
+  const status=inquiryEl('div');main.appendChild(status);
+  const list=inquiryEl('div');main.appendChild(list);
+  async function load(){
+    list.replaceChildren(inquiryEl('p','جارٍ تحميل الاستفسارات...'));
+    try{
+      const data=await inquiryApi('/api/admin-inquiries',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'list',password})});
+      list.replaceChildren();
+      if(!data.conversations.length){list.appendChild(inquiryEl('p','لا توجد استفسارات حالياً.'));return;}
+      data.conversations.forEach(c=>{
+        const row=inquiryEl('button');row.type='button';row.style.cssText='display:flex;align-items:center;gap:12px;width:100%;text-align:right;margin:8px 0;padding:12px;border:1px solid rgba(201,162,75,.3);border-radius:12px;background:#111f34;color:#f5f2ea;font-family:inherit;cursor:pointer;';
+        const avatar=inquiryEl('img');avatar.src=c.student_avatar||'https://ui-avatars.com/api/?name=Student&background=172943&color=e8c977';avatar.style.cssText='width:48px;height:48px;border-radius:50%;object-fit:cover;';
+        const info=inquiryEl('span');info.append(inquiryEl('strong',c.student_name||'طالب'),inquiryEl('div',c.subject),inquiryEl('small',new Date(c.updated_at).toLocaleString('ar')));
+        row.append(avatar,info);row.onclick=()=>open(c);list.appendChild(row);
+      });
+    }catch(e){list.replaceChildren(inquiryEl('p',e.message));}
+  }
+  async function open(c){
+    main.replaceChildren(inquiryEl('div',c.subject,'page-title'));
+    const back=inquiryButton('العودة إلى قائمة الاستفسارات',()=>render());
+    main.appendChild(back);
+    const box=inquiryCard();main.appendChild(box);
+    const note=inquiryEl('div');box.appendChild(note);
+    const messages=inquiryEl('div');messages.style.cssText='display:flex;flex-direction:column;gap:10px;';box.appendChild(messages);
+    const input=inquiryField(inquiryEl('textarea'));input.rows=3;input.placeholder='اكتب رد المشرف...';
+    const file=inquiryField(inquiryEl('input'));file.type='file';
+    const send=inquiryButton('إرسال الرد',async()=>{
+      try{
+        send.disabled=true;
+        let attachment=null;
+        if(file.files[0]) attachment=await inquiryAdminUpload(file.files[0],c.id,password);
+        if(!input.value.trim()&&!attachment) throw new Error('اكتب ردًا أو أرفق ملفًا.');
+        await inquiryApi('/api/admin-inquiries',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'reply',password,conversationId:c.id,message:input.value,attachment})});
+        input.value='';file.value='';await refresh();
+      } catch(e){inquiryStatus(note,e.message,true);} finally{send.disabled=false;}
+    });
+    box.append(input,file,send);
+    async function refresh(){
+      const data=await inquiryApi('/api/admin-inquiries',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'messages',password,conversationId:c.id})});
+      messages.replaceChildren();
+      data.messages.forEach(m=>{
+        const b=inquiryEl('div');b.style.cssText='padding:12px;border-radius:12px;background:'+(m.sender_role==='admin'?'rgba(201,162,75,.16)':'#172943')+';border:1px solid rgba(201,162,75,.2);';
+        b.append(inquiryEl('strong',m.sender_role==='admin'?'المشرف':'الطالب'),inquiryEl('p',m.body||'مرفق'));
+        if(m.attachment_path){
+          const a=inquiryButton('فتح المرفق',async()=>{try{const url=await inquiryAttachmentLink(m.attachment_path,null,password);window.open(url,'_blank','noopener');}catch(e){inquiryStatus(note,e.message,true);}});
+          b.appendChild(a);
+        }
+        b.append(inquiryEl('small',new Date(m.created_at).toLocaleString('ar')));messages.appendChild(b);
+      });
+    }
+    await refresh();
+  }
+  await load();
+}
 
 /* ================= NAV ENGINE ================= */
 const stack = [homePage];
@@ -1526,6 +1758,18 @@ function render(){
   crumb.textContent = stack.length > 1 ? stack.slice(1).map(n=>n.label).join('  ›  ') : '';
 
   main.innerHTML = '';
+if(node.type === 'student-inquiries'){
+  renderStudentInquiries(main);
+  return;
+}
+if(node.type === 'student-inquiry-chat'){
+  renderStudentInquiryChat(main, node.conversationId);
+  return;
+}
+if(node.type === 'admin-inquiries'){
+  renderAdminInquiries(main, node.adminPassword);
+  return;
+}
 if(node.type === 'exams-entry'){
   const title = document.createElement('div');
   title.className = 'page-title';
@@ -1619,6 +1863,13 @@ if(node.type === 'admin-data-entry'){
       }
 
       message.textContent = 'عدد الطلاب المسجلين: ' + data.count;
+      const inboxButton = document.createElement('button');
+      inboxButton.type = 'button';
+      inboxButton.textContent = 'عرض استفسارات الطلاب';
+      inboxButton.style.cssText = 'display:block;width:100%;margin:14px 0;padding:13px;border:0;border-radius:10px;background:#c9a24b;color:#172943;font-family:inherit;font-weight:bold;cursor:pointer;';
+      inboxButton.onclick = () => { stack.push({type:'admin-inquiries',label:'استفسارات الطلاب',adminPassword:password.value}); render(); };
+      results.appendChild(inboxButton);
+
 
       const table = document.createElement('table');
 
@@ -1745,8 +1996,7 @@ results.appendChild(tableWrapper);
     t.textContent = 'رسالة اليوم';
     main.appendChild(t);
     const card = document.createElement('div');
-    card.className='daily-card';
-    card.innerHTML = '<div class="mark">❝</div><div class="quote" id="dailyQuote"></div><button class="daily-btn" id="dailyBtn">رسالة أخرى ✨</button>';
+    card.className='daily-card';    card.innerHTML = '<div class="mark">❝</div><div class="quote" id="dailyQuote"></div><button class="daily-btn" id="dailyBtn">رسالة أخرى ✨</button>';
     main.appendChild(card);
     const q = card.querySelector('#dailyQuote');
     q.textContent = pickDaily();
