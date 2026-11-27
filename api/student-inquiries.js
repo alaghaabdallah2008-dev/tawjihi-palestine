@@ -30,8 +30,10 @@ module.exports = async (req,res) => {
     const c=await h.studentOwnsConversation(id,user.id);
     if (!c) return h.json(res,404,{error:'الاستفسار غير موجود.'});
     if (action === 'messages') {
-      const rows=await h.db(`inquiry_messages?conversation_id=eq.${encodeURIComponent(id)}&select=id,conversation_id,sender_role,body,attachment_path,attachment_name,attachment_mime,created_at&order=created_at.asc`);
-      await h.db(`inquiry_conversations?id=eq.${encodeURIComponent(id)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({student_unread:false})});
+      const [rows] = await Promise.all([
+        h.db(`inquiry_messages?conversation_id=eq.${encodeURIComponent(id)}&select=id,conversation_id,sender_role,body,attachment_path,attachment_name,attachment_mime,created_at&order=created_at.asc`),
+        h.db(`inquiry_conversations?id=eq.${encodeURIComponent(id)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({student_unread:false})})
+      ]);
       return h.json(res,200,{messages:rows||[]});
     }
     if (action === 'send') {
