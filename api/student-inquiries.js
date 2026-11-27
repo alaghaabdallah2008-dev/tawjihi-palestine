@@ -67,7 +67,7 @@ module.exports = async (req,res) => {
     if (action === 'download-url') {
       const path=String(body.path||'');
       const parts=downloadParts || h.safeStoragePath(path);
-      if (parts[0] !== id || parts[1] !== user.id) return h.json(res,403,{error:'غير مسموح.'});
+      if (parts[0] !== id || ![user.id,'admin'].includes(parts[1])) return h.json(res,403,{error:'غير مسموح.'});
       const exists=await h.db(`inquiry_messages?conversation_id=eq.${encodeURIComponent(id)}&attachment_path=eq.${encodeURIComponent(path)}&select=id`);
       if (!exists?.length) return h.json(res,404,{error:'المرفق غير موجود.'});
       return h.json(res,200,{url:await h.signedDownload(path)});
