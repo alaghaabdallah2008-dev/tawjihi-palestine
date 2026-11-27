@@ -1574,7 +1574,7 @@ async function inquiryUpload(file, conversationId, headers) {
   const uploaded = await fetch(uploadUrl, {
     method:'PUT', headers:{'Content-Type':file.type, 'x-upsert':'false'}, body:file
   });
-  if (!uploaded.ok) throw new Error('تعذر رفع الملف المرفق.');
+  if (!uploaded.ok) { let detail=''; try { const raw=await uploaded.text(); const parsed=raw?JSON.parse(raw):{}; detail=parsed.message||parsed.error||parsed.error_description||raw; } catch(_) {} throw new Error('فشل رفع الملف (HTTP '+uploaded.status+')'+(detail?': '+String(detail).slice(0,350):'.')); }
   return { path:signed.path, name:file.name, mime:file.type, size:file.size };
 }
 async function inquiryAttachmentLink(path, headers, adminPassword) {
@@ -1712,7 +1712,7 @@ async function inquiryAdminUpload(file, conversationId, password) {
   inquiryFileInfo(file);
   const signed=await inquiryApi('/api/admin-inquiries',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'upload-url',password,conversationId,fileName:file.name,contentType:file.type,size:file.size})});
   const uploaded=await fetch(signed.url,{method:'PUT',headers:{'Content-Type':file.type,'x-upsert':'false'},body:file});
-  if(!uploaded.ok)throw new Error('تعذر رفع الملف المرفق.');
+  if (!uploaded.ok) { let detail=''; try { const raw=await uploaded.text(); const parsed=raw?JSON.parse(raw):{}; detail=parsed.message||parsed.error||parsed.error_description||raw; } catch(_) {} throw new Error('فشل رفع الملف (HTTP '+uploaded.status+')'+(detail?': '+String(detail).slice(0,350):'.')); }
   return {path:signed.path,name:file.name,mime:file.type,size:file.size};
 }
 async function renderAdminInquiries(main, password) {
