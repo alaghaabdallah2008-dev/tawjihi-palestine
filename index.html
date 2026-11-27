@@ -2109,7 +2109,12 @@ results.appendChild(tableWrapper);
 }
 
 document.getElementById('backBtn').addEventListener('click', ()=>{
-  if(stack.length>1){ stack.pop(); render(); }
+  if(stack.length>1){
+    // Leaving a student's inquiry chat should return directly to the home menu.
+    if(stack[stack.length-1]?.type === 'student-inquiry-chat') stack.splice(1);
+    else stack.pop();
+    render();
+  }
 });
 
 /* ================= MARQUEE ================= */
