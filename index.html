@@ -1648,7 +1648,7 @@ function renderStudentInquiries(main) {
 function inquiryChatShell(main, avatarUrl, displayName, subtitle) {
   const shell=inquiryEl('section'); shell.style.cssText='width:100%;max-width:900px;height:min(72vh,760px);min-height:480px;margin:12px auto;background:#e9e3d8;border:1px solid rgba(201,162,75,.35);border-radius:18px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 14px 40px rgba(0,0,0,.22);';
   const header=inquiryEl('div'); header.style.cssText='display:flex;align-items:center;gap:12px;padding:12px 16px;background:#172943;color:#fff;flex:0 0 auto;';
-  const avatar=inquiryEl('img'); avatar.src=avatarUrl||'https://ui-avatars.com/api/?name=Student&background=172943&color=e8c977'; avatar.alt='الصورة الشخصية'; avatar.style.cssText='width:46px;height:46px;border-radius:50%;object-fit:cover;border:2px solid #c9a24b;';
+  const avatar=inquiryEl('img'); avatar.src='/favicon.png'; avatar.alt='الصورة الشخصية'; avatar.style.cssText='width:46px;height:46px;border-radius:50%;object-fit:cover;border:2px solid #c9a24b;';
   const identity=inquiryEl('div'); identity.style.cssText='min-width:0;display:flex;flex-direction:column;gap:3px;';
   const name=inquiryEl('strong',displayName||'المحادثة'); name.style.cssText='font-size:16px;color:#fff;';
   const sub=inquiryEl('small',subtitle||'الأسئلة والاستفسارات'); sub.style.cssText='color:#d4d9e2;font-size:12px;';
@@ -1765,7 +1765,7 @@ async function renderAdminInquiries(main, password) {
       if(!data.conversations.length){list.appendChild(inquiryEl('p','لا توجد استفسارات حالياً.'));return;}
       data.conversations.forEach(c=>{
         const row=inquiryEl('button');row.type='button';row.style.cssText='display:flex;align-items:center;gap:12px;width:100%;text-align:right;margin:8px 0;padding:12px;border:1px solid rgba(201,162,75,.3);border-radius:12px;background:#111f34;color:#f5f2ea;font-family:inherit;cursor:pointer;';
-        const avatar=inquiryEl('img');avatar.src=c.student_avatar||'https://ui-avatars.com/api/?name=Student&background=172943&color=e8c977';avatar.style.cssText='width:48px;height:48px;border-radius:50%;object-fit:cover;';
+        const avatar=inquiryEl('img');avatar.src='/favicon.png';avatar.style.cssText='width:48px;height:48px;border-radius:50%;object-fit:cover;';
         const info=inquiryEl('span');info.style.cssText='display:flex;flex-direction:column;gap:4px;flex:1;min-width:0;';
         info.append(inquiryEl('strong',c.student_name||'طالب'),inquiryEl('div',c.subject),inquiryEl('small',new Date(c.updated_at).toLocaleString('ar')));
         if(c.admin_unread===true || c.admin_unread==='true'){
