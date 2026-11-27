@@ -1765,7 +1765,7 @@ async function renderAdminInquiries(main, password) {
       if(!data.conversations.length){list.appendChild(inquiryEl('p','لا توجد استفسارات حالياً.'));return;}
       data.conversations.forEach(c=>{
         const row=inquiryEl('button');row.type='button';row.style.cssText='display:flex;align-items:center;gap:12px;width:100%;text-align:right;margin:8px 0;padding:12px;border:1px solid rgba(201,162,75,.3);border-radius:12px;background:#111f34;color:#f5f2ea;font-family:inherit;cursor:pointer;';
-        const avatar=inquiryEl('img');avatar.src='/favicon.png';avatar.style.cssText='width:48px;height:48px;border-radius:50%;object-fit:cover;';
+        const avatar=inquiryEl('img');avatar.src=c.student_avatar||'https://ui-avatars.com/api/?name='+encodeURIComponent(c.student_name||'Student')+'&background=172943&color=e8c977';avatar.alt=c.student_name||'صورة الطالب';avatar.referrerPolicy='no-referrer';avatar.onerror=()=>{avatar.onerror=null;avatar.src='https://ui-avatars.com/api/?name=Student&background=172943&color=e8c977';};avatar.style.cssText='width:48px;height:48px;border-radius:50%;object-fit:cover;';
         const info=inquiryEl('span');info.style.cssText='display:flex;flex-direction:column;gap:4px;flex:1;min-width:0;';
         info.append(inquiryEl('strong',c.student_name||'طالب'),inquiryEl('div',c.subject),inquiryEl('small',new Date(c.updated_at).toLocaleString('ar')));
         if(c.admin_unread===true || c.admin_unread==='true'){
