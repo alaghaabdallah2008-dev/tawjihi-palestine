@@ -1766,7 +1766,13 @@ async function renderAdminInquiries(main, password) {
       data.conversations.forEach(c=>{
         const row=inquiryEl('button');row.type='button';row.style.cssText='display:flex;align-items:center;gap:12px;width:100%;text-align:right;margin:8px 0;padding:12px;border:1px solid rgba(201,162,75,.3);border-radius:12px;background:#111f34;color:#f5f2ea;font-family:inherit;cursor:pointer;';
         const avatar=inquiryEl('img');avatar.src=c.student_avatar||'https://ui-avatars.com/api/?name=Student&background=172943&color=e8c977';avatar.style.cssText='width:48px;height:48px;border-radius:50%;object-fit:cover;';
-        const info=inquiryEl('span');info.append(inquiryEl('strong',c.student_name||'طالب'),inquiryEl('div',c.subject),inquiryEl('small',new Date(c.updated_at).toLocaleString('ar')));
+        const info=inquiryEl('span');info.style.cssText='display:flex;flex-direction:column;gap:4px;flex:1;min-width:0;';
+        info.append(inquiryEl('strong',c.student_name||'طالب'),inquiryEl('div',c.subject),inquiryEl('small',new Date(c.updated_at).toLocaleString('ar')));
+        if(c.admin_unread===true || c.admin_unread==='true'){
+          const unread=inquiryEl('span');unread.style.cssText='display:inline-flex;align-items:center;gap:7px;align-self:flex-start;margin-top:5px;padding:4px 9px;border-radius:20px;background:rgba(220,38,38,.12);color:#ff6b6b;font-size:12px;font-weight:800;';
+          const dot=inquiryEl('span');dot.style.cssText='width:9px;height:9px;flex:0 0 9px;border-radius:50%;background:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,.15);';
+          unread.append(dot,inquiryEl('span','رسالة جديدة غير مقروءة'));info.appendChild(unread);
+        }
         row.append(avatar,info);row.onclick=()=>open(c);list.appendChild(row);
       });
     }catch(e){list.replaceChildren(inquiryEl('p',e.message));}
