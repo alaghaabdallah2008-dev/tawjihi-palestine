@@ -8,7 +8,7 @@ module.exports = async (req,res) => {
     const body = h.bodyOf(req);
     const action = String(req.query?.action || body.action || (req.method==='GET'?'list':''));
     if (action === 'list') {
-      const rows = await h.db(`inquiry_conversations?student_id=eq.${encodeURIComponent(user.id)}&select=id,subject,status,updated_at,created_at&order=updated_at.desc`);
+      const rows = await h.db(`inquiry_conversations?student_id=eq.${encodeURIComponent(user.id)}&select=id,subject,status,updated_at,created_at,student_unread&order=updated_at.desc`);
       return h.json(res,200,{conversations:rows||[]});
     }
     if (action === 'create') {
