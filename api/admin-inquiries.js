@@ -22,10 +22,16 @@ module.exports = async (req,res) => {
       const path=`${id}/admin/${Date.now()}-${Math.random().toString(36).slice(2)}-${fileName}`;
       const data=await h.storage(`object/upload/sign/${h.BUCKET}/${path.split('/').map(encodeURIComponent).join('/')}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({upsert:false})});
       const signedPath=data.url || data.signedURL || data.signedUrl;
-      const token=data.token;
-      if (!signedPath || !token) throw new Error('تعذر إنشاء رابط الرفع من Supabase.');
+      if (!signedPath) throw new Error('تعذر إنشاء رابط الرفع من Supabase.');
       const base=signedPath.startsWith('http')?signedPath:`${h.SUPABASE_URL}/storage/v1${signedPath}`;
-      const url=`${base}${base.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`;
+      const uploadUrl=new URL(base);
+      const existingTokens=uploadUrl.searchParams.getAll('token');
+      const token=typeof data.token==='string' && data.token ? data.token : existingTokens[0];
+      if (!token) throw new Error('لم يُرجع Supabase رمز الرفع.');
+      // Supabase may already include token in data.url; normalize to exactly one token.
+      uploadUrl.searchParams.delete('token');
+      uploadUrl.searchParams.set('token',token);
+      const url=uploadUrl.toString();
       return h.json(res,200,{url,path});
     }
     if (action==='reply') {
