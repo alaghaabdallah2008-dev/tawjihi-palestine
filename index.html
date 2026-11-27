@@ -1633,22 +1633,9 @@ function renderStudentInquiries(main) {
       const data=await inquiryApi('/api/student-inquiries?action=list',{headers});
       const conversations=data.conversations||[];
       if(conversations.length){
-        main.replaceChildren(title);
-        const list=inquiryEl('div');list.style.cssText='width:100%;max-width:900px;margin:12px auto;display:flex;flex-direction:column;gap:9px;';
-        conversations.forEach(c=>{
-          const row=inquiryEl('button');row.type='button';row.style.cssText='display:flex;align-items:center;gap:12px;width:100%;text-align:right;padding:14px;border:1px solid rgba(201,162,75,.3);border-radius:12px;background:#111f34;color:#f5f2ea;font-family:inherit;cursor:pointer;';
-          const avatar=inquiryEl('img');avatar.src='/favicon.png';avatar.alt='Tawjihi Palestine';avatar.style.cssText='width:46px;height:46px;border-radius:50%;object-fit:cover;border:1px solid #c9a24b;';
-          const info=inquiryEl('span');info.style.cssText='display:flex;flex-direction:column;gap:5px;flex:1;min-width:0;';
-          info.append(inquiryEl('strong',c.subject||'استفسار'));
-          info.append(inquiryEl('small','آخر تحديث: '+new Date(c.updated_at).toLocaleString('ar')));
-          if(c.student_unread===true || c.student_unread==='true'){
-            const unread=inquiryEl('span');unread.style.cssText='display:inline-flex;align-items:center;gap:7px;align-self:flex-start;margin-top:3px;color:#ff6b6b;font-size:12px;font-weight:800;';
-            const dot=inquiryEl('span');dot.style.cssText='width:9px;height:9px;flex:0 0 9px;border-radius:50%;background:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,.15);';
-            unread.append(dot,inquiryEl('span','رسالة جديدة غير مقروءة'));info.appendChild(unread);
-          }
-          row.append(avatar,info);row.onclick=()=>{stack.push({type:'student-inquiry-chat',label:c.subject||'المحادثة',conversationId:c.id});render();};list.appendChild(row);
-        });
-        main.appendChild(list);
+        const latest=conversations[0];
+        stack.push({type:'student-inquiry-chat',label:latest.subject||'المحادثة',conversationId:latest.id});
+        render();
         return;
       }
       startNewInquiry();
@@ -2164,6 +2151,24 @@ results.appendChild(tableWrapper);
     el.innerHTML = `<span class="label"><span class="dot"></span>${child.label}</span><span class="arrow">‹</span>`;
     el.onclick = ()=>{ stack.push(child); render(); };
     list.appendChild(el);
+    if(node === homePage && child.type === 'student-inquiries'){
+      (async()=>{
+        try{
+          const headers=await inquirySessionHeaders();
+          const data=await inquiryApi('/api/student-inquiries?action=list',{headers});
+          const hasUnread=(data.conversations||[]).some(c=>c.student_unread===true || c.student_unread==='true');
+          if(hasUnread && el.isConnected){
+            const label=el.querySelector('.label');
+            const notice=document.createElement('span');
+            notice.style.cssText='display:inline-flex;align-items:center;gap:7px;margin-right:10px;color:#ef4444;font-size:12px;font-weight:800;';
+            const dot=document.createElement('span');
+            dot.style.cssText='width:9px;height:9px;border-radius:50%;background:#ef4444;display:inline-block;flex:0 0 9px;';
+            notice.append(dot,document.createTextNode('رسالة جديدة غير مقروءة'));
+            label.appendChild(notice);
+          }
+        }catch(e){}
+      })();
+    }
   });
 
   main.appendChild(list);
