@@ -289,7 +289,7 @@
     const originalRender = render;
     render = function () {
       const current = stack[stack.length - 1];
-      if (current?.type === 'student-inquiries-page') {
+      if (current?.type === 'student-inquiries-entry') {
         originalRender();
         const main = document.getElementById('main');
         main.innerHTML = '';
@@ -326,16 +326,7 @@
         }
       }
 
-      if (current?.type === 'student-inquiries-entry') {
-        // The homepage entry is rendered by the normal menu renderer. Its click
-        // handler is replaced with the inquiries route.
-        const items = [...document.querySelectorAll('#main .menu-item')];
-        const target = items.find(item => item.textContent.includes('الأسئلة والاستفسارات'));
-        if (target) target.onclick = () => {
-          stack.push({type:'student-inquiries-page',label:'الأسئلة والاستفسارات'});
-          render();
-        };
-      }
+
     };
   }
 
