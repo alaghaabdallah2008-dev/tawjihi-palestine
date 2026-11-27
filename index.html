@@ -1607,7 +1607,7 @@ function renderStudentInquiries(main) {
 
   async function startNewInquiry(){
     main.replaceChildren(title);
-    const ui=inquiryChatShell(main,'','محادثة جديدة','ابدأ استفسارك مع فريق المنصة');
+    const ui=inquiryChatShell(main,'','محادثة جديدة','ابدأ استفسارك مع Tawjihi Palestine');
     let creating=false;
     const controls=inquiryComposer(ui.composer,'اكتب سؤالك أو استفسارك...',async(input,file,send)=>{
       const message=input.value.trim();
@@ -1693,7 +1693,7 @@ function inquiryComposer(composer, placeholder, onSend) {
 }
 async function renderStudentInquiryChat(main, conversationId) {
   const title=inquiryEl('div','المحادثة','page-title');main.appendChild(title);
-  const ui=inquiryChatShell(main,'','المحادثة','استفسارك مع فريق المنصة');
+  const ui=inquiryChatShell(main,'','المحادثة','استفسارك مع Tawjihi Palestine');
   let headers,channel,refreshing=false,refreshAgain=false;
   const controls=inquiryComposer(ui.composer,'اكتب رسالتك...',sendMessage);
   let pendingAttachment=null,uploadingFile=false;
