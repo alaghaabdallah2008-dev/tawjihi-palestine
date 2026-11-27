@@ -1671,17 +1671,25 @@ function inquiryComposer(composer, placeholder, onSend) {
 async function renderStudentInquiryChat(main, conversationId) {
   const title=inquiryEl('div','المحادثة','page-title');main.appendChild(title);
   const ui=inquiryChatShell(main,'','المحادثة','استفسارك مع فريق المنصة');
-  let headers,channel,conversation;
+  let headers,channel,refreshing=false,refreshAgain=false;
   const controls=inquiryComposer(ui.composer,'اكتب رسالتك...',sendMessage);
+
   async function refresh(){
-    const data=await inquiryApi('/api/student-inquiries?action=messages&conversationId='+encodeURIComponent(conversationId),{headers});
-    ui.feed.replaceChildren();
-    data.messages.forEach(m=>ui.feed.appendChild(inquiryChatBubble(m,m.sender_role==='student',ui.status,headers,null)));
-    ui.feed.scrollTop=ui.feed.scrollHeight;
+    if(refreshing){refreshAgain=true;return;}
+    refreshing=true;
+    try{
+      const data=await inquiryApi('/api/student-inquiries?action=messages&conversationId='+encodeURIComponent(conversationId),{headers});
+      ui.feed.replaceChildren();
+      (data.messages||[]).forEach(m=>ui.feed.appendChild(inquiryChatBubble(m,m.sender_role==='student',ui.status,headers,null)));
+      ui.feed.scrollTop=ui.feed.scrollHeight;
+    }finally{
+      refreshing=false;
+      if(refreshAgain){refreshAgain=false;refresh().catch(e=>inquiryStatus(ui.status,e.message,true));}
+    }
   }
   async function sendMessage(input,file,send){
     try{
-      send.disabled=true;headers=await inquirySessionHeaders({'Content-Type':'application/json'});
+      send.disabled=true;
       let attachment=null;if(file.files[0])attachment=await inquiryUpload(file.files[0],conversationId,headers);
       if(!input.value.trim()&&!attachment)throw new Error('اكتب رسالة أو أرفق ملفاً.');
       await inquiryApi('/api/student-inquiries?action=send',{method:'POST',headers,body:JSON.stringify({conversationId,message:input.value,attachment})});
@@ -1689,18 +1697,13 @@ async function renderStudentInquiryChat(main, conversationId) {
     }catch(e){inquiryStatus(ui.status,e.message,true);}finally{send.disabled=false;}
   }
   try{
-    headers=await inquirySessionHeaders();
-    const list=await inquiryApi('/api/student-inquiries?action=list',{headers});
-    conversation=(list.conversations||[]).find(c=>c.id===conversationId);
-    if(conversation){
-      const avatar=ui.shell.querySelector('header img');avatar.src='https://ui-avatars.com/api/?name=Student&background=172943&color=e8c977';
-      ui.shell.querySelector('header strong').textContent=conversation.subject||'المحادثة';
-    }
+    headers=await inquirySessionHeaders({'Content-Type':'application/json'});
+    // Fetch the messages immediately; do not wait for a separate conversation-list request.
     await refresh();
     const client=window.tawjihiSupabase;
     if(client){
       channel=client.channel('student-inquiry-'+conversationId)
-        .on('postgres_changes',{event:'INSERT',schema:'public',table:'inquiry_messages',filter:'conversation_id=eq.'+conversationId},()=>refresh().catch(()=>{})).subscribe();
+        .on('postgres_changes',{event:'INSERT',schema:'public',table:'inquiry_messages',filter:'conversation_id=eq.'+conversationId},()=>refresh().catch(e=>inquiryStatus(ui.status,e.message,true))).subscribe();
       window.addEventListener('beforeunload',()=>{if(channel)client.removeChannel(channel);},{once:true});
     }
   }catch(e){inquiryStatus(ui.status,e.message,true);}
