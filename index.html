@@ -1585,51 +1585,50 @@ async function inquiryAttachmentLink(path, headers, adminPassword) {
   return result.url;
 }
 function renderStudentInquiries(main) {
-  const title = inquiryEl('div','الأسئلة والاستفسارات','page-title'); main.appendChild(title);
-  const card = inquiryCard(); main.appendChild(card);
-  const status = inquiryEl('div'); card.appendChild(status);
-  const subject = inquiryField(inquiryEl('input')); subject.placeholder='عنوان الاستفسار'; subject.maxLength=120;
-  const body = inquiryField(inquiryEl('textarea')); body.placeholder='اكتب سؤالك أو استفسارك بالتفصيل...'; body.rows=4;
-  const file = inquiryField(inquiryEl('input')); file.type='file';
-  const create = inquiryButton('إرسال استفسار جديد', async()=>{
-    try {
-      create.disabled=true; inquiryStatus(status,'جارٍ إرسال الاستفسار...');
-      const headers=await inquirySessionHeaders({'Content-Type':'application/json'});
-      const data=await inquiryApi('/api/student-inquiries?action=create',{method:'POST',headers,body:JSON.stringify({subject:subject.value,message:body.value})});
-      let attachment=null;
-      if(file.files[0]) attachment=await inquiryUpload(file.files[0],data.conversation.id,headers);
-      if(attachment) await inquiryApi('/api/student-inquiries?action=send',{method:'POST',headers,body:JSON.stringify({conversationId:data.conversation.id,message:'',attachment})});
-      subject.value=''; body.value=''; file.value='';
-      inquiryStatus(status,'تم إرسال استفسارك بنجاح.');
-      await loadList();
-    } catch(e){ inquiryStatus(status,e.message,true); }
-    finally { create.disabled=false; }
-  });
-  card.append(subject,body,file,create);
-  const listWrap=inquiryCard(); main.appendChild(listWrap);
-  listWrap.appendChild(inquiryEl('h3','استفساراتي'));
-  const list=inquiryEl('div'); listWrap.appendChild(list);
-  async function loadList(){
-    list.replaceChildren(inquiryEl('p','جارٍ تحميل الاستفسارات...'));
+  const title=inquiryEl('div','الأسئلة والاستفسارات','page-title');main.appendChild(title);
+  const status=inquiryEl('div');main.appendChild(status);
+  const loading=inquiryEl('p','جارٍ فتح محادثتك...');main.appendChild(loading);
+
+  async function startNewInquiry(){
+    main.replaceChildren(title);
+    const card=inquiryCard();main.appendChild(card);
+    const subject=inquiryField(inquiryEl('input'));subject.placeholder='عنوان الاستفسار';subject.maxLength=120;
+    const body=inquiryField(inquiryEl('textarea'));body.placeholder='اكتب سؤالك أو استفسارك بالتفصيل...';body.rows=4;
+    const file=inquiryField(inquiryEl('input'));file.type='file';file.accept='image/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt';
+    const create=inquiryButton('إرسال الاستفسار وفتح المحادثة',async()=>{
+      try{
+        create.disabled=true;inquiryStatus(status,'جارٍ إنشاء المحادثة...');
+        const headers=await inquirySessionHeaders({'Content-Type':'application/json'});
+        const data=await inquiryApi('/api/student-inquiries?action=create',{method:'POST',headers,body:JSON.stringify({subject:subject.value,message:body.value})});
+        if(file.files[0]){
+          const attachment=await inquiryUpload(file.files[0],data.conversation.id,headers);
+          await inquiryApi('/api/student-inquiries?action=send',{method:'POST',headers,body:JSON.stringify({conversationId:data.conversation.id,message:'',attachment})});
+        }
+        stack.push({type:'student-inquiry-chat',label:data.conversation.subject||'المحادثة',conversationId:data.conversation.id});
+        render();
+      }catch(e){inquiryStatus(status,e.message,true);}
+      finally{create.disabled=false;}
+    });
+    card.append(subject,body,file,create);
+  }
+
+  (async()=>{
     try{
       const headers=await inquirySessionHeaders();
       const data=await inquiryApi('/api/student-inquiries?action=list',{headers});
-      list.replaceChildren();
-      if(!data.conversations.length){list.appendChild(inquiryEl('p','لا توجد استفسارات حتى الآن.'));return;}
-      data.conversations.forEach(c=>{
-        const row=inquiryEl('button');
-        row.type='button'; row.style.cssText='display:block;width:100%;text-align:right;margin:8px 0;padding:14px;border:1px solid rgba(201,162,75,.3);border-radius:12px;background:#111f34;color:#f5f2ea;font-family:inherit;cursor:pointer;';
-        row.append(inquiryEl('strong',c.subject),inquiryEl('div',`الحالة: ${c.status==='closed'?'مغلقة':'قيد المتابعة'} · ${new Date(c.updated_at).toLocaleString('ar')}`));
-        row.onclick=()=>openChat(c,headers);
-        list.appendChild(row);
-      });
-    }catch(e){list.replaceChildren(inquiryEl('p',e.message));}
-  }
-  async function openChat(conversation, headers){
-    stack.push({type:'student-inquiry-chat',label:conversation.subject,conversationId:conversation.id});
-    render();
-  }
-  loadList();
+      const conversations=data.conversations||[];
+      if(conversations.length){
+        const latest=conversations[0];
+        stack.push({type:'student-inquiry-chat',label:latest.subject||'المحادثة',conversationId:latest.id});
+        render();
+        return;
+      }
+      startNewInquiry();
+    }catch(e){
+      loading.remove();
+      inquiryStatus(status,e.message,true);
+    }
+  })();
 }
 function inquiryChatShell(main, avatarUrl, displayName, subtitle) {
   const shell=inquiryEl('section'); shell.style.cssText='width:100%;max-width:900px;height:min(72vh,760px);min-height:480px;margin:12px auto;background:#e9e3d8;border:1px solid rgba(201,162,75,.35);border-radius:18px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 14px 40px rgba(0,0,0,.22);';
