@@ -21,9 +21,11 @@ module.exports = async (req,res) => {
       const fileName=h.validFile(body);
       const path=`${id}/admin/${Date.now()}-${Math.random().toString(36).slice(2)}-${fileName}`;
       const data=await h.storage(`object/upload/sign/${h.BUCKET}/${path.split('/').map(encodeURIComponent).join('/')}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({upsert:false})});
-      const signed=data.url || data.signedURL || data.signedUrl;
-      if (!signed) throw new Error('تعذر إنشاء رابط الرفع.');
-      const url=signed.startsWith('http')?signed:`${h.SUPABASE_URL}/storage/v1${signed}`;
+      const signedPath=data.url || data.signedURL || data.signedUrl;
+      const token=data.token;
+      if (!signedPath || !token) throw new Error('تعذر إنشاء رابط الرفع من Supabase.');
+      const base=signedPath.startsWith('http')?signedPath:`${h.SUPABASE_URL}/storage/v1${signedPath}`;
+      const url=`${base}${base.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`;
       return h.json(res,200,{url,path});
     }
     if (action==='reply') {
