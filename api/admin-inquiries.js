@@ -43,6 +43,7 @@ module.exports = async (req,res) => {
         h.validFile({fileName:attachment.name,contentType:attachment.mime,size:attachment.size});
       }
       const row=await h.addMessage({conversationId:id,senderId:null,senderRole:'admin',message:body.message,attachment});
+      await h.db(`inquiry_conversations?id=eq.${encodeURIComponent(id)}`,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({student_unread:true})});
       return h.json(res,201,{message:row});
     }
     if (action==='download-url') {
