@@ -9,7 +9,8 @@ module.exports = async (req,res) => {
       const rows=await h.db('inquiry_conversations?select=id,student_id,student_name,student_avatar,subject,status,updated_at,created_at,admin_unread&order=updated_at.desc');
       return h.json(res,200,{conversations:rows||[]});
     }
-    const id=String(body.conversationId||'');
+    const downloadParts = action === 'download-url' ? h.safeStoragePath(body.path) : null;
+    const id=String(body.conversationId || downloadParts?.[0] || '');
     const c=await h.conversation(id);
     if (!c) return h.json(res,404,{error:'الاستفسار غير موجود.'});
     if (action==='messages') {
@@ -46,10 +47,9 @@ module.exports = async (req,res) => {
     }
     if (action==='download-url') {
       const path=String(body.path||'');
-      const parts=h.safeStoragePath(path);
-      const pathConversation=parts[0];
-      if (!await h.conversation(pathConversation)) return h.json(res,404,{error:'الاستفسار غير موجود.'});
-      const exists=await h.db(`inquiry_messages?conversation_id=eq.${encodeURIComponent(pathConversation)}&attachment_path=eq.${encodeURIComponent(path)}&select=id`);
+      const parts=downloadParts || h.safeStoragePath(path);
+      if (parts[0] !== id || parts[1] !== 'admin') return h.json(res,403,{error:'غير مسموح.'});
+      const exists=await h.db(`inquiry_messages?conversation_id=eq.${encodeURIComponent(id)}&attachment_path=eq.${encodeURIComponent(path)}&select=id`);
       if (!exists?.length) return h.json(res,404,{error:'المرفق غير موجود.'});
       return h.json(res,200,{url:await h.signedDownload(path)});
     }
