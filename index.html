@@ -1605,25 +1605,24 @@ function renderStudentInquiries(main) {
 
   async function startNewInquiry(){
     main.replaceChildren(title);
-    const card=inquiryCard();main.appendChild(card);
-    const subject=inquiryField(inquiryEl('input'));subject.placeholder='عنوان الاستفسار';subject.maxLength=120;
-    const body=inquiryField(inquiryEl('textarea'));body.placeholder='اكتب سؤالك أو استفسارك بالتفصيل...';body.rows=4;
-    const file=inquiryField(inquiryEl('input'));file.type='file';file.accept='image/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt';
-    const create=inquiryButton('إرسال الاستفسار وفتح المحادثة',async()=>{
+    const ui=inquiryChatShell(main,'','محادثة جديدة','ابدأ استفسارك مع فريق المنصة');
+    let creating=false;
+    const controls=inquiryComposer(ui.composer,'اكتب سؤالك أو استفسارك...',async(input,file,send)=>{
+      const message=input.value.trim();
+      if(!message || creating) return;
       try{
-        create.disabled=true;inquiryStatus(status,'جارٍ إنشاء المحادثة...');
+        creating=true;send.disabled=true;
+        inquiryStatus(ui.status,'جارٍ إرسال رسالتك وفتح المحادثة...');
         const headers=await inquirySessionHeaders({'Content-Type':'application/json'});
-        const data=await inquiryApi('/api/student-inquiries?action=create',{method:'POST',headers,body:JSON.stringify({subject:subject.value,message:body.value})});
-        if(file.files[0]){
-          const attachment=await inquiryUpload(file.files[0],data.conversation.id,headers);
-          await inquiryApi('/api/student-inquiries?action=send',{method:'POST',headers,body:JSON.stringify({conversationId:data.conversation.id,message:'',attachment})});
-        }
+        const data=await inquiryApi('/api/student-inquiries?action=create',{method:'POST',headers,body:JSON.stringify({subject:'استفسار جديد',message})});
         stack.push({type:'student-inquiry-chat',label:data.conversation.subject||'المحادثة',conversationId:data.conversation.id});
         render();
-      }catch(e){inquiryStatus(status,e.message,true);}
-      finally{create.disabled=false;}
+      }catch(e){
+        inquiryStatus(ui.status,e.message,true);
+        send.disabled=false;
+      }finally{creating=false;}
     });
-    card.append(subject,body,file,create);
+    controls.input.focus();
   }
 
   (async()=>{
