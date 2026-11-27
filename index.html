@@ -1631,57 +1631,86 @@ function renderStudentInquiries(main) {
   }
   loadList();
 }
+function inquiryChatShell(main, avatarUrl, displayName, subtitle) {
+  const shell=inquiryEl('section'); shell.style.cssText='width:100%;max-width:900px;height:min(72vh,760px);min-height:480px;margin:12px auto;background:#e9e3d8;border:1px solid rgba(201,162,75,.35);border-radius:18px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 14px 40px rgba(0,0,0,.22);';
+  const header=inquiryEl('div'); header.style.cssText='display:flex;align-items:center;gap:12px;padding:12px 16px;background:#172943;color:#fff;flex:0 0 auto;';
+  const avatar=inquiryEl('img'); avatar.src=avatarUrl||'https://ui-avatars.com/api/?name=Student&background=172943&color=e8c977'; avatar.alt='الصورة الشخصية'; avatar.style.cssText='width:46px;height:46px;border-radius:50%;object-fit:cover;border:2px solid #c9a24b;';
+  const identity=inquiryEl('div'); identity.style.cssText='min-width:0;display:flex;flex-direction:column;gap:3px;';
+  const name=inquiryEl('strong',displayName||'المحادثة'); name.style.cssText='font-size:16px;color:#fff;';
+  const sub=inquiryEl('small',subtitle||'الأسئلة والاستفسارات'); sub.style.cssText='color:#d4d9e2;font-size:12px;';
+  identity.append(name,sub); header.append(avatar,identity);
+  const feed=inquiryEl('div'); feed.style.cssText='flex:1;min-height:0;overflow-y:auto;padding:18px 14px;display:flex;flex-direction:column;gap:10px;background-color:#e9e3d8;background-image:radial-gradient(rgba(23,41,67,.055) .8px,transparent .8px);background-size:14px 14px;';
+  const status=inquiryEl('div'); status.style.cssText='padding:0 12px;color:#9b3b32;font-size:13px;background:#f7f4ee;';
+  const composer=inquiryEl('div'); composer.style.cssText='display:flex;align-items:flex-end;gap:8px;padding:10px;background:#f7f4ee;border-top:1px solid #ddd6ca;flex:0 0 auto;';
+  shell.append(header,feed,status,composer); main.appendChild(shell);
+  return {shell,feed,status,composer};
+}
+function inquiryChatBubble(message, mine, status, headers, adminPassword) {
+  const line=inquiryEl('div'); line.style.cssText='width:100%;display:flex;justify-content:'+(mine?'flex-end':'flex-start')+';';
+  const bubble=inquiryEl('div'); bubble.style.cssText='max-width:min(78%,560px);min-width:110px;padding:10px 12px 7px;border-radius:'+(mine?'14px 4px 14px 14px':'4px 14px 14px 14px')+';background:'+(mine?'#d9f3c8':'#fff')+';color:#243044;box-shadow:0 1px 2px rgba(0,0,0,.12);overflow-wrap:anywhere;';
+  const who=inquiryEl('div',mine?'أنت':(message.sender_role==='admin'?'المشرف':'الطالب')); who.style.cssText='font-size:11px;font-weight:800;color:'+(mine?'#4d7650':'#9a7430')+';margin-bottom:4px;';
+  bubble.appendChild(who);
+  if(message.body){const body=inquiryEl('div',message.body);body.style.cssText='font-size:14px;line-height:1.65;white-space:pre-wrap;';bubble.appendChild(body);}
+  if(message.attachment_path){
+    const attachment=inquiryButton('📎 '+(message.attachment_name||'فتح المرفق'),async()=>{
+      try { const url=await inquiryAttachmentLink(message.attachment_path,headers,adminPassword); window.open(url,'_blank','noopener'); }
+      catch(e){inquiryStatus(status,e.message,true);}
+    });
+    attachment.style.cssText='display:block;margin-top:7px;padding:7px 10px;border-radius:8px;border:1px solid #b99a55;background:transparent;color:#5b4a24;font-family:inherit;cursor:pointer;max-width:100%;';
+    bubble.appendChild(attachment);
+  }
+  const time=inquiryEl('small',new Date(message.created_at).toLocaleTimeString('ar',{hour:'2-digit',minute:'2-digit'})); time.style.cssText='display:block;text-align:left;color:#7d817d;font-size:10px;margin-top:5px;';
+  bubble.appendChild(time); line.appendChild(bubble); return line;
+}
+function inquiryComposer(composer, placeholder, onSend) {
+  const file=inquiryEl('input'); file.type='file'; file.accept='image/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt'; file.style.cssText='width:38px;max-width:38px;color:transparent;cursor:pointer;'; file.title='إرفاق صورة أو ملف';
+  const input=inquiryEl('textarea'); input.rows=1; input.placeholder=placeholder; input.style.cssText='flex:1;min-width:0;max-height:110px;resize:vertical;padding:11px 13px;border:1px solid #d7d4cc;border-radius:22px;background:#fff;color:#172943;font-family:inherit;box-sizing:border-box;outline:none;';
+  const send=inquiryButton('إرسال',()=>onSend(input,file,send)); send.style.cssText='padding:11px 17px;border:0;border-radius:22px;background:#c9a24b;color:#101a2e;font-family:inherit;font-weight:800;cursor:pointer;white-space:nowrap;';
+  input.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();onSend(input,file,send);}});
+  composer.append(file,input,send); return {input,file,send};
+}
 async function renderStudentInquiryChat(main, conversationId) {
   const title=inquiryEl('div','المحادثة','page-title');main.appendChild(title);
-  const card=inquiryCard();main.appendChild(card);
-  const status=inquiryEl('div');card.appendChild(status);
-  const messages=inquiryEl('div');messages.style.cssText='display:flex;flex-direction:column;gap:10px;margin-bottom:18px;';card.appendChild(messages);
-  const input=inquiryField(inquiryEl('textarea'));input.rows=3;input.placeholder='اكتب ردك...';
-  const file=inquiryField(inquiryEl('input'));file.type='file';
-  const send=inquiryButton('إرسال',sendMessage);
-  card.append(input,file,send);
-  let headers, channel;
+  const ui=inquiryChatShell(main,'','المحادثة','استفسارك مع فريق المنصة');
+  let headers,channel,conversation;
+  const controls=inquiryComposer(ui.composer,'اكتب رسالتك...',sendMessage);
   async function refresh(){
     const data=await inquiryApi('/api/student-inquiries?action=messages&conversationId='+encodeURIComponent(conversationId),{headers});
-    messages.replaceChildren();
-    data.messages.forEach(m=>{
-      const b=inquiryEl('div');b.style.cssText='padding:12px;border-radius:12px;background:'+(m.sender_role==='admin'?'rgba(201,162,75,.16)':'#172943')+';border:1px solid rgba(201,162,75,.2);';
-      b.append(inquiryEl('strong',m.sender_role==='admin'?'المشرف':'أنت'),inquiryEl('p',m.body||'مرفق'));
-      if(m.attachment_path){
-        const a=inquiryEl('button','فتح المرفق');a.type='button';a.style.cssText='margin-top:8px;padding:7px 12px;border-radius:8px;border:1px solid #c9a24b;background:transparent;color:#e8c977;font-family:inherit;cursor:pointer;';
-        a.onclick=async()=>{try{const url=await inquiryAttachmentLink(m.attachment_path,headers);window.open(url,'_blank','noopener');}catch(e){inquiryStatus(status,e.message,true);}};
-        b.appendChild(a);
-      }
-      b.append(inquiryEl('small',new Date(m.created_at).toLocaleString('ar')));messages.appendChild(b);
-    });
-    messages.scrollTop=messages.scrollHeight;
+    ui.feed.replaceChildren();
+    data.messages.forEach(m=>ui.feed.appendChild(inquiryChatBubble(m,m.sender_role==='student',ui.status,headers,null)));
+    ui.feed.scrollTop=ui.feed.scrollHeight;
   }
-  async function sendMessage(){
+  async function sendMessage(input,file,send){
     try{
       send.disabled=true;headers=await inquirySessionHeaders({'Content-Type':'application/json'});
-      let attachment=null;
-      if(file.files[0]) attachment=await inquiryUpload(file.files[0],conversationId,headers);
-      if(!input.value.trim()&&!attachment) throw new Error('اكتب رسالة أو أرفق ملفاً.');
+      let attachment=null;if(file.files[0])attachment=await inquiryUpload(file.files[0],conversationId,headers);
+      if(!input.value.trim()&&!attachment)throw new Error('اكتب رسالة أو أرفق ملفاً.');
       await inquiryApi('/api/student-inquiries?action=send',{method:'POST',headers,body:JSON.stringify({conversationId,message:input.value,attachment})});
-      input.value='';file.value='';inquiryStatus(status,'تم إرسال الرسالة.');await refresh();
-    }catch(e){inquiryStatus(status,e.message,true);}finally{send.disabled=false;}
+      input.value='';file.value='';inquiryStatus(ui.status,'');await refresh();
+    }catch(e){inquiryStatus(ui.status,e.message,true);}finally{send.disabled=false;}
   }
   try{
-    headers=await inquirySessionHeaders();await refresh();
+    headers=await inquirySessionHeaders();
+    const list=await inquiryApi('/api/student-inquiries?action=list',{headers});
+    conversation=(list.conversations||[]).find(c=>c.id===conversationId);
+    if(conversation){
+      const avatar=ui.shell.querySelector('header img');avatar.src='https://ui-avatars.com/api/?name=Student&background=172943&color=e8c977';
+      ui.shell.querySelector('header strong').textContent=conversation.subject||'المحادثة';
+    }
+    await refresh();
     const client=window.tawjihiSupabase;
     if(client){
       channel=client.channel('student-inquiry-'+conversationId)
-        .on('postgres_changes',{event:'INSERT',schema:'public',table:'inquiry_messages',filter:'conversation_id=eq.'+conversationId},()=>refresh().catch(()=>{}))
-        .subscribe();
+        .on('postgres_changes',{event:'INSERT',schema:'public',table:'inquiry_messages',filter:'conversation_id=eq.'+conversationId},()=>refresh().catch(()=>{})).subscribe();
       window.addEventListener('beforeunload',()=>{if(channel)client.removeChannel(channel);},{once:true});
     }
-  }catch(e){inquiryStatus(status,e.message,true);}
+  }catch(e){inquiryStatus(ui.status,e.message,true);}
 }
 async function inquiryAdminUpload(file, conversationId, password) {
   inquiryFileInfo(file);
   const signed=await inquiryApi('/api/admin-inquiries',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'upload-url',password,conversationId,fileName:file.name,contentType:file.type,size:file.size})});
   const uploaded=await fetch(signed.url,{method:'PUT',headers:{'Content-Type':file.type,'x-upsert':'false'},body:file});
-  if(!uploaded.ok) throw new Error('تعذر رفع الملف المرفق.');
+  if(!uploaded.ok)throw new Error('تعذر رفع الملف المرفق.');
   return {path:signed.path,name:file.name,mime:file.type,size:file.size};
 }
 async function renderAdminInquiries(main, password) {
@@ -1703,39 +1732,32 @@ async function renderAdminInquiries(main, password) {
     }catch(e){list.replaceChildren(inquiryEl('p',e.message));}
   }
   async function open(c){
-    main.replaceChildren(inquiryEl('div',c.subject,'page-title'));
-    const back=inquiryButton('العودة إلى قائمة الاستفسارات',()=>render());
+    main.replaceChildren();
+    const back=inquiryButton('← العودة إلى قائمة الاستفسارات',()=>render());
+    back.style.cssText='margin:0 0 10px;padding:9px 14px;border:0;border-radius:9px;background:#c9a24b;color:#101a2e;font-family:inherit;font-weight:800;cursor:pointer;';
     main.appendChild(back);
-    const box=inquiryCard();main.appendChild(box);
-    const note=inquiryEl('div');box.appendChild(note);
-    const messages=inquiryEl('div');messages.style.cssText='display:flex;flex-direction:column;gap:10px;';box.appendChild(messages);
-    const input=inquiryField(inquiryEl('textarea'));input.rows=3;input.placeholder='اكتب رد المشرف...';
-    const file=inquiryField(inquiryEl('input'));file.type='file';
-    const send=inquiryButton('إرسال الرد',async()=>{
-      try{
-        send.disabled=true;
-        let attachment=null;
-        if(file.files[0]) attachment=await inquiryAdminUpload(file.files[0],c.id,password);
-        if(!input.value.trim()&&!attachment) throw new Error('اكتب ردًا أو أرفق ملفًا.');
-        await inquiryApi('/api/admin-inquiries',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'reply',password,conversationId:c.id,message:input.value,attachment})});
-        input.value='';file.value='';await refresh();
-      } catch(e){inquiryStatus(note,e.message,true);} finally{send.disabled=false;}
-    });
-    box.append(input,file,send);
+    const ui=inquiryChatShell(main,c.student_avatar,c.student_name||'طالب',c.subject||'استفسار طالب');
+    let refreshBusy=false;
+    const controls=inquiryComposer(ui.composer,'اكتب ردك للطالب...',sendReply);
     async function refresh(){
-      const data=await inquiryApi('/api/admin-inquiries',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'messages',password,conversationId:c.id})});
-      messages.replaceChildren();
-      data.messages.forEach(m=>{
-        const b=inquiryEl('div');b.style.cssText='padding:12px;border-radius:12px;background:'+(m.sender_role==='admin'?'rgba(201,162,75,.16)':'#172943')+';border:1px solid rgba(201,162,75,.2);';
-        b.append(inquiryEl('strong',m.sender_role==='admin'?'المشرف':'الطالب'),inquiryEl('p',m.body||'مرفق'));
-        if(m.attachment_path){
-          const a=inquiryButton('فتح المرفق',async()=>{try{const url=await inquiryAttachmentLink(m.attachment_path,null,password);window.open(url,'_blank','noopener');}catch(e){inquiryStatus(note,e.message,true);}});
-          b.appendChild(a);
-        }
-        b.append(inquiryEl('small',new Date(m.created_at).toLocaleString('ar')));messages.appendChild(b);
-      });
+      if(refreshBusy)return;refreshBusy=true;
+      try{
+        const data=await inquiryApi('/api/admin-inquiries',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'messages',password,conversationId:c.id})});
+        ui.feed.replaceChildren();
+        data.messages.forEach(m=>ui.feed.appendChild(inquiryChatBubble(m,m.sender_role==='admin',ui.status,null,password)));
+        ui.feed.scrollTop=ui.feed.scrollHeight;
+      }finally{refreshBusy=false;}
     }
-    await refresh();
+    async function sendReply(input,file,send){
+      try{
+        send.disabled=true;let attachment=null;
+        if(file.files[0])attachment=await inquiryAdminUpload(file.files[0],c.id,password);
+        if(!input.value.trim()&&!attachment)throw new Error('اكتب رداً أو أرفق ملفاً.');
+        await inquiryApi('/api/admin-inquiries',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'reply',password,conversationId:c.id,message:input.value,attachment})});
+        input.value='';file.value='';inquiryStatus(ui.status,'');await refresh();
+      }catch(e){inquiryStatus(ui.status,e.message,true);}finally{send.disabled=false;}
+    }
+    try{await refresh();}catch(e){inquiryStatus(ui.status,e.message,true);}
   }
   await load();
 }
