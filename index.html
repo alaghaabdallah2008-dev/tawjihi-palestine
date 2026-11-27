@@ -1564,17 +1564,31 @@ function inquiryFileInfo(file) {
   if (file.size > 5 * 1024 * 1024) throw new Error('الحد الأقصى لحجم الملف 5 ميغابايت.');
   return file;
 }
-async function inquiryUpload(file, conversationId, headers) {
+function inquiryPutFile(url,file,onProgress) {
+  return new Promise((resolve,reject)=>{
+    const xhr=new XMLHttpRequest();
+    xhr.open('PUT',url,true);
+    xhr.setRequestHeader('Content-Type',file.type);
+    xhr.setRequestHeader('x-upsert','false');
+    xhr.upload.onprogress=event=>{
+      if(event.lengthComputable&&typeof onProgress==='function')onProgress(Math.min(100,Math.round(event.loaded/event.total*100)));
+    };
+    xhr.onload=()=>{
+      if(xhr.status>=200&&xhr.status<300){if(typeof onProgress==='function')onProgress(100);resolve();}
+      else reject(new Error('فشل رفع الملف (HTTP '+xhr.status+')'+(xhr.responseText?': '+xhr.responseText.slice(0,300):'.')));
+    };
+    xhr.onerror=()=>reject(new Error('انقطع الاتصال أثناء رفع الملف.'));
+    xhr.onabort=()=>reject(new Error('تم إلغاء رفع الملف.'));
+    xhr.send(file);
+  });
+}
+async function inquiryUpload(file, conversationId, headers, onProgress) {
   inquiryFileInfo(file);
   const signed = await inquiryApi('/api/student-inquiries?action=upload-url', {
     method:'POST', headers:{...headers,'Content-Type':'application/json'},
     body:JSON.stringify({conversationId, fileName:file.name, contentType:file.type, size:file.size})
   });
-  const uploadUrl = signed.url;
-  const uploaded = await fetch(uploadUrl, {
-    method:'PUT', headers:{'Content-Type':file.type, 'x-upsert':'false'}, body:file
-  });
-  if (!uploaded.ok) { let detail=''; try { const raw=await uploaded.text(); const parsed=raw?JSON.parse(raw):{}; detail=parsed.message||parsed.error||parsed.error_description||raw; } catch(_) {} throw new Error('فشل رفع الملف (HTTP '+uploaded.status+')'+(detail?': '+String(detail).slice(0,350):'.')); }
+  await inquiryPutFile(signed.url,file,onProgress);
   return { path:signed.path, name:file.name, mime:file.type, size:file.size };
 }
 async function inquiryAttachmentLink(path, headers, adminPassword) {
@@ -1681,6 +1695,21 @@ async function renderStudentInquiryChat(main, conversationId) {
   const ui=inquiryChatShell(main,'','المحادثة','استفسارك مع فريق المنصة');
   let headers,channel,refreshing=false,refreshAgain=false;
   const controls=inquiryComposer(ui.composer,'اكتب رسالتك...',sendMessage);
+  let pendingAttachment=null,uploadingFile=false;
+  controls.file.addEventListener('change',async()=>{
+    const file=controls.file.files[0];pendingAttachment=null;
+    if(!file){inquiryStatus(ui.status,'');controls.send.disabled=false;return;}
+    uploadingFile=true;controls.send.disabled=true;
+    const progress=inquiryEl('div');progress.style.cssText='margin-top:6px;padding:8px 11px;border-radius:9px;background:#eef3f8;color:#34445c;font-size:12px;';
+    const label=inquiryEl('div','جارٍ رفع '+file.name+' — 0%');const track=inquiryEl('div');track.style.cssText='height:5px;margin-top:7px;border-radius:8px;background:#d7e0e9;overflow:hidden;';
+    const bar=inquiryEl('div');bar.style.cssText='height:100%;width:0%;background:#c9a24b;border-radius:8px;transition:width .15s;';track.appendChild(bar);progress.append(label,track);ui.status.replaceChildren(progress);
+    try{
+      pendingAttachment=await inquiryUpload(file,conversationId,headers,percent=>{bar.style.width=percent+'%';label.textContent='جارٍ رفع '+file.name+' — '+percent+'%';});
+      label.textContent='✓ '+file.name+' — اكتمل الرفع، اضغط إرسال';label.style.color='#247447';bar.style.background='#29945d';
+      controls.send.disabled=false;
+    }catch(e){pendingAttachment=null;controls.file.value='';label.textContent=e.message;label.style.color='#b42318';controls.send.disabled=false;}
+    finally{uploadingFile=false;}
+  });
 
   async function refresh(){
     if(refreshing){refreshAgain=true;return;}
@@ -1697,11 +1726,12 @@ async function renderStudentInquiryChat(main, conversationId) {
   }
   async function sendMessage(input,file,send){
     try{
+      if(uploadingFile)throw new Error('انتظر حتى يكتمل رفع الملف.');
       send.disabled=true;
-      let attachment=null;if(file.files[0])attachment=await inquiryUpload(file.files[0],conversationId,headers);
+      const attachment=pendingAttachment;
       if(!input.value.trim()&&!attachment)throw new Error('اكتب رسالة أو أرفق ملفاً.');
       await inquiryApi('/api/student-inquiries?action=send',{method:'POST',headers,body:JSON.stringify({conversationId,message:input.value,attachment})});
-      input.value='';file.value='';inquiryStatus(ui.status,'');await refresh();
+      input.value='';file.value='';pendingAttachment=null;inquiryStatus(ui.status,'');await refresh();
     }catch(e){inquiryStatus(ui.status,e.message,true);}finally{send.disabled=false;}
   }
   try{
@@ -1716,11 +1746,10 @@ async function renderStudentInquiryChat(main, conversationId) {
     }
   }catch(e){inquiryStatus(ui.status,e.message,true);}
 }
-async function inquiryAdminUpload(file, conversationId, password) {
+async function inquiryAdminUpload(file, conversationId, password, onProgress) {
   inquiryFileInfo(file);
   const signed=await inquiryApi('/api/admin-inquiries',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'upload-url',password,conversationId,fileName:file.name,contentType:file.type,size:file.size})});
-  const uploaded=await fetch(signed.url,{method:'PUT',headers:{'Content-Type':file.type,'x-upsert':'false'},body:file});
-  if (!uploaded.ok) { let detail=''; try { const raw=await uploaded.text(); const parsed=raw?JSON.parse(raw):{}; detail=parsed.message||parsed.error||parsed.error_description||raw; } catch(_) {} throw new Error('فشل رفع الملف (HTTP '+uploaded.status+')'+(detail?': '+String(detail).slice(0,350):'.')); }
+  await inquiryPutFile(signed.url,file,onProgress);
   return {path:signed.path,name:file.name,mime:file.type,size:file.size};
 }
 async function renderAdminInquiries(main, password) {
@@ -1749,6 +1778,21 @@ async function renderAdminInquiries(main, password) {
     const ui=inquiryChatShell(main,c.student_avatar,c.student_name||'طالب',c.subject||'استفسار طالب');
     let refreshBusy=false;
     const controls=inquiryComposer(ui.composer,'اكتب ردك للطالب...',sendReply);
+    let pendingAttachment=null,uploadingFile=false;
+    controls.file.addEventListener('change',async()=>{
+      const file=controls.file.files[0];pendingAttachment=null;
+      if(!file){inquiryStatus(ui.status,'');controls.send.disabled=false;return;}
+      uploadingFile=true;controls.send.disabled=true;
+      const progress=inquiryEl('div');progress.style.cssText='margin-top:6px;padding:8px 11px;border-radius:9px;background:#eef3f8;color:#34445c;font-size:12px;';
+      const label=inquiryEl('div','جارٍ رفع '+file.name+' — 0%');const track=inquiryEl('div');track.style.cssText='height:5px;margin-top:7px;border-radius:8px;background:#d7e0e9;overflow:hidden;';
+      const bar=inquiryEl('div');bar.style.cssText='height:100%;width:0%;background:#c9a24b;border-radius:8px;transition:width .15s;';track.appendChild(bar);progress.append(label,track);ui.status.replaceChildren(progress);
+      try{
+        pendingAttachment=await inquiryAdminUpload(file,c.id,password,percent=>{bar.style.width=percent+'%';label.textContent='جارٍ رفع '+file.name+' — '+percent+'%';});
+        label.textContent='✓ '+file.name+' — اكتمل الرفع، اضغط إرسال';label.style.color='#247447';bar.style.background='#29945d';
+        controls.send.disabled=false;
+      }catch(e){pendingAttachment=null;controls.file.value='';label.textContent=e.message;label.style.color='#b42318';controls.send.disabled=false;}
+      finally{uploadingFile=false;}
+    });
     async function refresh(){
       if(refreshBusy)return;refreshBusy=true;
       try{
@@ -1760,11 +1804,11 @@ async function renderAdminInquiries(main, password) {
     }
     async function sendReply(input,file,send){
       try{
-        send.disabled=true;let attachment=null;
-        if(file.files[0])attachment=await inquiryAdminUpload(file.files[0],c.id,password);
+        if(uploadingFile)throw new Error('انتظر حتى يكتمل رفع الملف.');
+        send.disabled=true;const attachment=pendingAttachment;
         if(!input.value.trim()&&!attachment)throw new Error('اكتب رداً أو أرفق ملفاً.');
         await inquiryApi('/api/admin-inquiries',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'reply',password,conversationId:c.id,message:input.value,attachment})});
-        input.value='';file.value='';inquiryStatus(ui.status,'');await refresh();
+        input.value='';file.value='';pendingAttachment=null;inquiryStatus(ui.status,'');await refresh();
       }catch(e){inquiryStatus(ui.status,e.message,true);}finally{send.disabled=false;}
     }
     try{await refresh();}catch(e){inquiryStatus(ui.status,e.message,true);}
